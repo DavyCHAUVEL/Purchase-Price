@@ -1,0 +1,112 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Submit_For_Approval</name>
+        <label>Submit For Approval</label>
+        <locationX>176</locationX>
+        <locationY>275</locationY>
+        <actionName>submit</actionName>
+        <actionType>submit</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>objectId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>processDefinitionNameOrId</name>
+            <value>
+                <stringValue>Purchase_Price_Validation</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>submitterId</name>
+            <value>
+                <elementReference>$User.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>skipEntryCriteria</name>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </inputParameters>
+        <nameSegment>submit</nameSegment>
+        <offset>0</offset>
+    </actionCalls>
+    <apiVersion>65.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>Soumet automatiquement un Purchase_Price__c a l'Approval Process Purchase_Price_Validation quand le statut est To Confirm sur create OU quand on passe a To Confirm par update (ex. saisie sans statut puis mise a jour). Ne re-soumet pas si seuls d&apos;autres champs changent et que le statut reste To Confirm (formule: nouveau record OU changement de Status__c).</description>
+    <environments>Default</environments>
+    <decisions>
+        <name>Should_Auto_Submit</name>
+        <label>Should Auto Submit</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <rules>
+            <name>Yes_Submit</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>fxShouldAutoSubmit</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Submit_For_Approval</targetReference>
+            </connector>
+            <label>Yes Submit</label>
+        </rules>
+    </decisions>
+    <formulas>
+        <name>fxShouldAutoSubmit</name>
+        <dataType>Boolean</dataType>
+        <expression>AND(
+TEXT($Record.Status__c) = &quot;To Confirm&quot;,
+OR(
+ISNEW(),
+ISCHANGED($Record.Status__c)
+)
+)</expression>
+    </formulas>
+    <interviewLabel>PP_PurchasePrice_AfterSave_AutoSubmitApproval {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>PP_PurchasePrice_AfterSave_AutoSubmitApproval</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <runInMode>SystemModeWithoutSharing</runInMode>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Should_Auto_Submit</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Status__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>To Confirm</stringValue>
+            </value>
+        </filters>
+        <object>Purchase_Price__c</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>
+
+

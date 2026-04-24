@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>PopupBerkem_RestrictedAccountId</fullName>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>ID compte restreint pour le popup</shortDescription>
+        <value>0010900000vqqBuAAI</value>
+    </labels>
+    <labels>
+        <fullName>PopupBerkem_WarningMessage</fullName>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Message d’avertissement du popup</shortDescription>
+        <value>Attention : vous ne pouvez pas envoyer d’esters de polyhydroxyl pour ce client.</value>
+    </labels>
+    <labels>
+        <fullName>LB_Purchase_Price_Email_Subject</fullName>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Objet email standard Purchase Price</shortDescription>
+        <value>[Purchase Price] Notification</value>
+    </labels>
+    <labels>
+        <fullName>LB_Purchase_Price_Email_Body_New</fullName>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Corps email creation Purchase Price</shortDescription>
+        <value>Salut Robin,&lt;br/&gt;&lt;br/&gt;Un nouveau prix d&apos;achat a &eacute;t&eacute; cr&eacute;&eacute;.&lt;br/&gt;Merci de v&eacute;rifier la fiche Purchase Price correspondante dans Salesforce.&lt;br/&gt;&lt;br/&gt;--&lt;br/&gt;Automation Purchase Price</value>
+    </labels>
+    <labels>
+        <fullName>LB_Purchase_Price_Email_Body_Update</fullName>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Corps email approbation Purchase Price</shortDescription>
+        <value>Bonjour Robin,&lt;br/&gt;&lt;br/&gt;Un prix d&apos;achat a &eacute;t&eacute; approuv&eacute; (statut : Valid&eacute;).&lt;br/&gt;Vous trouverez le d&eacute;tail dans le tableau ci-dessous &amp;mdash; merci de v&eacute;rifier la fiche dans Salesforce si besoin.&lt;br/&gt;&lt;br/&gt;--&lt;br/&gt;Automation Purchase Price</value>
+    </labels>
+    <labels>
+        <fullName>LB_Purchase_Price_Weekly_New_Subject</fullName>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Objet rapport hebdo nouveautes</shortDescription>
+        <value>[Purchase Price] Rapport hebdo - Nouveaux prix</value>
+    </labels>
+    <labels>
+        <fullName>LB_Purchase_Price_Weekly_ToConfirm_Subject</fullName>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Objet rapport hebdo to confirm</shortDescription>
+        <value>[Purchase Price] Rapport hebdo - En attente de validation</value>
+    </labels>
+    <labels>
+        <fullName>LB_Purchase_Price_Weekly_New_Body</fullName>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Corps rapport hebdo nouveaux prix</shortDescription>
+        <value>Bonjour,&lt;br/&gt;&lt;br/&gt;Rapport hebdomadaire des nouveaux enregistrements Purchase Price cr&eacute;&eacute;s.&lt;br/&gt;Consultez la vue de liste &laquo; All &raquo; de l&apos;objet Purchase Price pour le d&eacute;tail.&lt;br/&gt;&lt;br/&gt;--&lt;br/&gt;Automation Purchase Price</value>
+    </labels>
+    <labels>
+        <fullName>LB_Purchase_Price_Weekly_ToConfirm_Body</fullName>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Corps rapport hebdo to confirm</shortDescription>
+        <value>Bonjour,&lt;br/&gt;&lt;br/&gt;Rapport hebdomadaire des Purchase Price au statut &laquo; To Confirm &raquo; (en attente de validation).&lt;br/&gt;Consultez la vue de liste d&eacute;di&eacute;e pour prioriser les validations.&lt;br/&gt;&lt;br/&gt;--&lt;br/&gt;Automation Purchase Price</value>
+    </labels>
+    <labels>
+        <fullName>LB_Purchase_Price_Dedupe_Standard_Error</fullName>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Erreur doublon prix standard (Article, fournisseur, purchased through)</shortDescription>
+        <value>Un prix d&apos;achat &laquo; standard &raquo; existe d&eacute;j&agrave; pour le m&ecirc;me article, le m&ecirc;me compte d&apos;achat (Purchased threw sur le produit) et le m&ecirc;me fournisseur (hors enregistrements obsoletes). Ouvrez l&apos;enregistrement existant ou creez un prix specifique client.</value>
+    </labels>
+    <labels>
+        <fullName>LB_Purchase_Price_Notification_Recipients</fullName>
+        <categories>Purchase Price</categories>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Destinataires email Purchase Price (Robin ou DL)</shortDescription>
+        <value>robin@iwasecosfa.com</value>
+    </labels></CustomLabels>
+
