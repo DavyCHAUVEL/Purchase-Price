@@ -1,0 +1,1926 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <description>Ajoute l'INCI du composant courant a la liste INCI du produit, avec separateur '&amp;' entre chaque valeur</description>
+        <name>Add_Component_INCI_to_List</name>
+        <label>Add Component INCI to List</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varProductINCI</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>fxCurrentInciConcat</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Through_Product_Components</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Injecte les notes additionnelles (Additional_Notes__c) dans le corps de l&apos;email, entre les phrases de devis/échantillons et le footer. Le texte est wrappé dans un paragraphe HTML stylé</description>
+        <name>Add_Additional_Notes_to_HTML</name>
+        <label>Add Additional Notes to HTML</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlBody</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>fxAdditionalNotes</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Finalize_HTML</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Ajoute le HTML d&apos;une formule (lien cliquable) à la variable htmlFormulas lors de chaque itération de la boucle sur les formules du produit courant</description>
+        <name>Add_Formula_to_HTML</name>
+        <label>Add Formula to HTML</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlFormulas</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>tt_FormulaItem</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Through_Formulas</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Ajoute un message en italique &apos;Aucune formule associée&apos; quand le produit n&apos;a aucune formule liée</description>
+        <name>Add_No_Formulas_Message</name>
+        <label>Add No Formulas Message</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlFormulas</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>&lt;div style=&quot;font-style: italic; color: #999; padding: 10px;&quot;&gt;Aucune formule associée&lt;/div&gt;</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Close_Formulas_Section</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Ajoute le bloc HTML complet du produit courant (en-tête + formules) au corps principal de l&apos;email (htmlBody)</description>
+        <name>Add_Product_to_Body</name>
+        <label>Add Product to Body</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlBody</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>htmlProduct</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Through_Presented_Products</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Ajoute la phrase de devis (singulier ou pluriel selon le nombre de quotations) au corps de l&apos;email avant la finalisation</description>
+        <name>Add_Quotation_Sentence_to_HTML</name>
+        <label>Add Quotation Sentence to HTML</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlBody</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varQuotationSentence</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_Sample_Requested_Post_Loop</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Ajoute la phrase d&apos;annonce d&apos;envoi d&apos;échantillons au corps de l&apos;email, uniquement quand au moins un produit a la case Sample cochée</description>
+        <name>Add_Sample_Sentence_to_HTML</name>
+        <label>Add Sample Sentence to HTML</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlBody</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>fxSampleSentence</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Finalize_HTML</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Dans la boucle Loop_Through_Members : analyse la langue du membre courant. Au 1er passage, stocke la langue et le ContactId. Aux passages suivants, compare la langue avec celle du 1er membre. Si différente, passe varAllSameLanguage à false.</description>
+        <name>Analyze_Member_Language</name>
+        <label>Analyze Member Language</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varMemberCount</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <numberValue>1.0</numberValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Is_First_Member</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Construit l&apos;en-tête HTML du produit : nom, bullet point dans la langue détectée et lien vers le catalogue</description>
+        <name>Build_Product_HTML_Header</name>
+        <label>Build Product HTML Header</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlProduct</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>tt_ProductHeader</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_Formulation_Selected</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Ferme la balise div de la section formules pour ce produit</description>
+        <name>Close_Formulas_Section</name>
+        <label>Close Formulas Section</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlFormulas</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>&lt;/div&gt;</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_if_Quotation_is_Selected</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assemble le HTML du produit (en-tête) avec le HTML des formules et ferme le bloc div principal du produit</description>
+        <name>Combine_Product_HTML</name>
+        <label>Combine Product HTML</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlProduct</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>htmlFormulas</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>htmlProduct</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>&lt;/div&gt;</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Product_to_Body</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Définit le contenu de l&apos;email en anglais</description>
+        <name>Copy_1_of_Set_English_Content</name>
+        <label>Copy 1 of Set English Content</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>emailSubject</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Follow up meeting {!formattedMeetingDate} {!Get_Campaign.Account_name__r.Name} - IWASE</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>emailHeader</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>emailHeaderEN</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>emailFooter</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>emailFooterEN</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>bulletPointField</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Bullet_Point_EN__c</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>catalogLinkText</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Download catalog</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>formulasSectionTitle</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Associated formulas :</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Presented_Products</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Ajoute le footer de l&apos;email (annonce échantillons, formule de politesse, signature) au corps HTML pour finaliser le contenu complet</description>
+        <name>Finalize_HTML</name>
+        <label>Finalize HTML</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlBody</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>emailFooter</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_Campaign_Email_Body</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Force la langue de l&apos;email à EN (anglais) quand les langues des membres sont mixtes ou quand la langue unique n&apos;est ni FR ni IT. Enchaîne vers Get_Contact_Details.</description>
+        <name>Force_English_Language</name>
+        <label>Force English Language</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varFirstLanguage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>EN</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Contact_Details</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Incrémente le compteur de devis et stocke le nom du produit courant (utilisé pour la phrase singulier si un seul devis)</description>
+        <name>Increment_Quotation_Count_and_Store_Name</name>
+        <label>Increment Quotation Count and Store Name</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varQuotationCount</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <numberValue>1.0</numberValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varQuotationProductName</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>DisplayProductName</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Check_if_Sample_is_Selected</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Initialise la section formules avec le titre traduit (ex: &apos;Formules associées :&apos;) dans la langue du contact</description>
+        <name>Initialize_Formulas_Section</name>
+        <label>Initialize Formulas Section</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlFormulas</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>tt_FormulaTitle</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Has_Formulas</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Initialise le corps de l&apos;email avec le header traduit (salutation et phrase d&apos;introduction) avant la boucle sur les produits</description>
+        <name>Initialize_HTML_Header</name>
+        <label>Initialize HTML Header</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlBody</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>TemplateInitialBody</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Through_Presented_Products</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Réinitialise la variable htmlFormulas à vide avant de traiter le produit suivant dans la boucle</description>
+        <name>Reset_Formulas_HTML</name>
+        <label>Reset Formulas HTML</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>htmlFormulas</assignToReference>
+            <operator>Assign</operator>
+        </assignmentItems>
+        <connector>
+            <targetReference>Reset_Product_INCI_List</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Reinitialise la liste INCI du produit courant avant de charger ses composants</description>
+        <name>Reset_Product_INCI_List</name>
+        <label>Reset Product INCI List</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varProductINCI</assignToReference>
+            <operator>Assign</operator>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Product_Components</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Définit le contenu de l&apos;email en anglais</description>
+        <name>Set_English_Content</name>
+        <label>Set English Content</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>emailSubject</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Follow up meeting {!formattedMeetingDate} {!Get_Campaign.Account_name__r.Name} - IWASE</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>emailHeader</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>emailHeaderEN</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>emailFooter</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>emailFooterEN</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>bulletPointField</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Bullet_Point_EN__c</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>catalogLinkText</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Download catalog</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>formulasSectionTitle</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Associated formulas :</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Presented_Products</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>1er membre de la boucle : stocke sa langue comme référence (varFirstLanguage), son ContactId (varFirstContactId) pour le lookup Get_Contact_Details, et initialise varAllSameLanguage à true.</description>
+        <name>Set_First_Member_Language</name>
+        <label>Set First Member Language</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varFirstLanguage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>fxCurrentMemberLanguageCode</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varFirstContactId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_Through_Members.ContactId</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varAllSameLanguage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Through_Members</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Définit le contenu de l&apos;email en français formel (vouvoiement) : sujet, header, footer, champ bullet point FR et texte du lien catalogue</description>
+        <name>Set_French_Formal_Content</name>
+        <label>Set French Formal Content</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>emailSubject</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Suite RDV du {!formattedMeetingDate} {!Get_Campaign.Account_name__r.Name} - IWASE</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>emailHeader</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>emailHeaderFR</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>emailFooter</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>emailFooterFR</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>bulletPointField</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Bullet_Point_FR__c</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>catalogLinkText</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Télécharger le catalogue</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>formulasSectionTitle</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Formules associées :</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Presented_Products</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Définit le contenu de l&apos;email en italien formel (Lei)</description>
+        <name>Set_Italian_Formal_Content</name>
+        <label>Set Italian Formal Content</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>emailSubject</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Seguito dell&apos;appuntamento {!formattedMeetingDate} {!Get_Campaign.Account_name__r.Name} - IWASE</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>emailHeader</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>emailHeaderIT</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>emailFooter</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>emailFooterIT</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>bulletPointField</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Bullet_Point_IT__c</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>catalogLinkText</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Scarica il catalogo</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>formulasSectionTitle</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Formule associate :</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Presented_Products</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Langue du membre courant différente du 1er membre : passe varAllSameLanguage à false. Cela forcera l&apos;email en anglais après la boucle.</description>
+        <name>Set_Language_Mismatch</name>
+        <label>Set Language Mismatch</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varAllSameLanguage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Through_Members</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Définit la phrase de devis au pluriel quand plusieurs produits ont la case Quotation cochée (ex: &apos;Vous trouverez en PJ nos offres de prix...&apos;)</description>
+        <name>Set_Multiple_Quotations_Sentence</name>
+        <label>Set Multiple Quotations Sentence</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varQuotationSentence</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>fxMultipleQuotationsSentence</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Quotation_Sentence_to_HTML</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Passe le flag varSampleRequested à true quand au moins un produit présenté a la case Sample cochée</description>
+        <name>Set_Sample_Requested</name>
+        <label>Set Sample Requested</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varSampleRequested</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Combine_Product_HTML</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Définit la phrase de devis au singulier avec le nom du produit quand un seul produit a la case Quotation cochée</description>
+        <name>Set_Single_Quotation_Sentence</name>
+        <label>Set Single Quotation Sentence</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varQuotationSentence</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>fxSingleQuotationSentence</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Quotation_Sentence_to_HTML</targetReference>
+        </connector>
+    </assignments>
+    <decisions>
+        <description>Vérifie si le champ Additional_Notes__c du Campaign contient du texte. Si oui, injecte les notes dans l&apos;email entre les phrases de devis/échantillons et le footer</description>
+        <name>Check_Additional_Notes</name>
+        <label>Check Additional Notes</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Finalize_HTML</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Has_Additional_Notes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Campaign.Additional_Notes__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Add_Additional_Notes_to_HTML</targetReference>
+            </connector>
+            <label>Has Additional Notes</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Vérifie si la case Formulation__c est cochée sur le produit présenté courant. Si oui, on construit la section des formules associées. Sinon, on passe directement à la vérification Quotation</description>
+        <name>Check_Formulation_Selected</name>
+        <label>Check if Formulation is Selected</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Check_if_Quotation_is_Selected</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Formulation_is_Checked</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Loop_Through_Presented_Products.Formulation__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Initialize_Formulas_Section</targetReference>
+            </connector>
+            <label>Formulation is Checked</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Vérifie si la case Quotation__c est cochée sur le produit présenté courant. Si oui, on incrémente le compteur de devis et on stocke le nom du produit</description>
+        <name>Check_if_Quotation_is_Selected</name>
+        <label>Check if Quotation is Selected</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Check_if_Sample_is_Selected</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Quotation_is_Checked</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Loop_Through_Presented_Products.Quotation__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Increment_Quotation_Count_and_Store_Name</targetReference>
+            </connector>
+            <label>Quotation is Checked</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Vérifie si la case Sample__c est cochée sur le produit présenté courant. Si oui, on passe varSampleRequested à true pour conditionner la phrase d&apos;échantillons en fin d&apos;email</description>
+        <name>Check_if_Sample_is_Selected</name>
+        <label>Check if Sample is Selected</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Combine_Product_HTML</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Sample_is_Checked</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Loop_Through_Presented_Products.Sample__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Sample_Requested</targetReference>
+            </connector>
+            <label>Sample is Checked</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Dans la boucle des membres : compare la langue du membre courant (fxCurrentMemberLanguageCode) avec celle du 1er membre (varFirstLanguage). Si identique → retour à la boucle. Si différente → Set_Language_Mismatch (force anglais).</description>
+        <name>Check_Language_Match</name>
+        <label>Check Language Match</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Set_Language_Mismatch</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Language Different</defaultConnectorLabel>
+        <rules>
+            <name>Language_Same</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>fxCurrentMemberLanguageCode</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>varFirstLanguage</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Through_Members</targetReference>
+            </connector>
+            <label>Language Same</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Après la boucle sur les produits, détermine combien de devis ont été demandés : =1 → phrase singulier avec nom du produit, &gt;1 → phrase pluriel, =0 → aucune phrase ajoutée</description>
+        <name>Check_Quotation_Count</name>
+        <label>Check Quotation Count</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Add_Quotation_Sentence_to_HTML</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Equal_1</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varQuotationCount</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <numberValue>1.0</numberValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Single_Quotation_Sentence</targetReference>
+            </connector>
+            <label>Equal 1</label>
+        </rules>
+        <rules>
+            <name>Superior_1</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varQuotationCount</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <numberValue>1.0</numberValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Multiple_Quotations_Sentence</targetReference>
+            </connector>
+            <label>Superior 1</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Après la boucle et la phrase de devis, vérifie si au moins un produit avait la case Sample cochée. Si oui, ajoute la phrase d&apos;annonce d&apos;envoi d&apos;échantillons. Si non, passe directement à la finalisation</description>
+        <name>Check_Sample_Requested_Post_Loop</name>
+        <label>Check Sample Requested</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Finalize_HTML</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Sample_Requested</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varSampleRequested</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Add_Sample_Sentence_to_HTML</targetReference>
+            </connector>
+            <label>Sample Requested</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Aiguille vers le bon contenu d&apos;email selon varFirstLanguage (déterminé par l&apos;analyse multi-membres) et le ton (EmailTone). varFirstLanguage contient FR, IT ou EN. Par défaut : anglais si langue non reconnue.</description>
+        <name>Determine_Email_Content</name>
+        <label>Determine Email Content</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Copy_1_of_Set_English_Content</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>English</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varFirstLanguage</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>EN</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_English_Content</targetReference>
+            </connector>
+            <label>English</label>
+        </rules>
+        <rules>
+            <name>French_Formal</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varFirstLanguage</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>FR</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_French_Formal_Content</targetReference>
+            </connector>
+            <label>French Formal</label>
+        </rules>
+        <rules>
+            <name>Italian_Formale</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varFirstLanguage</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>IT</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Italian_Formal_Content</targetReference>
+            </connector>
+            <label>Italian Formale</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Après la boucle des membres : détermine la langue finale de l&apos;email. Si tous les membres ont la même langue (varAllSameLanguage = true) → utilise varFirstLanguage (FR ou IT). Si les langues sont mixtes ou inconnues → anglais par défaut. Enchaîne vers Get_Contact_Details pour récupérer les infos du 1er contact.</description>
+        <name>Determine_Language_From_Members</name>
+        <label>Determine Language From Members</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Force_English_Language</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Mixed or English</defaultConnectorLabel>
+        <rules>
+            <name>All_French</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varAllSameLanguage</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>varFirstLanguage</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>FR</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Contact_Details</targetReference>
+            </connector>
+            <label>All French</label>
+        </rules>
+        <rules>
+            <name>All_Italian</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varAllSameLanguage</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>varFirstLanguage</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>IT</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Contact_Details</targetReference>
+            </connector>
+            <label>All Italian</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Vérifie si des formules (Presented_Product_Formula__c) existent pour le produit courant. Si oui → boucle sur les formules. Si non → message &apos;Aucune formule associée&apos;</description>
+        <name>Has_Formulas</name>
+        <label>Has Formulas</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Add_No_Formulas_Message</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Yes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Formulas_for_this_Product</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Through_Formulas</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Vérifie si c&apos;est le 1er membre de la boucle (varMemberCount = 1). Si oui → on stocke sa langue et son ContactId comme référence. Sinon → on compare sa langue avec celle du 1er membre.</description>
+        <name>Is_First_Member</name>
+        <label>Is First Member</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Check_Language_Match</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not First Member</defaultConnectorLabel>
+        <rules>
+            <name>First_Member</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varMemberCount</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <numberValue>1.0</numberValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_First_Member_Language</targetReference>
+            </connector>
+            <label>First Member</label>
+        </rules>
+    </decisions>
+    <environments>Default</environments>
+    <formulas>
+        <description>Retourne le bullet point du produit dans la langue détectée (EN, FR ou IT) en fonction de la variable bulletPointField définie selon la langue du contact</description>
+        <name>CurrentBulletPoint</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  {!bulletPointField} = &quot;Bullet_Point_EN__c&quot;,
+  {!Get_Product_Details.Bullet_Point_EN__c},
+  IF(
+    {!bulletPointField} = &quot;Bullet_Point_FR__c&quot;,
+    {!Get_Product_Details.Bullet_Point_FR__c},
+    {!Get_Product_Details.Bullet_Point_IT__c}
+  )
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Nom produit a afficher dans les emails: Dark Product Name si renseigne, sinon Name en fallback.</description>
+        <name>DisplayProductName</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  ISBLANK({!Get_Product_Details.Dark_Product_Name__c}),
+  {!Get_Product_Details.Name},
+  {!Get_Product_Details.Dark_Product_Name__c}
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Nom produit affiche avec la liste INCI en italique entre parentheses quand des INCI existent</description>
+        <name>DisplayProductNameWithINCI</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  ISBLANK({!varProductINCI}),
+  {!DisplayProductName},
+  {!DisplayProductName} &amp; &quot; &lt;i&gt;(&quot; &amp; {!varProductINCI} &amp; &quot;)&lt;/i&gt;&quot;
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Convertit la picklist Language__c du contact (French/English/Italian) en code langue (FR/EN/IT). Retourne EN par défaut si la langue n&apos;est pas reconnue. Utilisé par les formules de devis et échantillons (basé sur Get_Contact_Details).</description>
+        <name>EmailLanguageCode</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  OR(
+    LOWER(TEXT({!Get_Contact_Details.Language__c})) = &quot;french&quot;,
+    LOWER(TEXT({!Get_Contact_Details.Language__c})) = &quot;fr&quot;,
+    LOWER(TEXT({!Get_Contact_Details.Language__c})) = &quot;français&quot;,
+    LOWER(TEXT({!Get_Contact_Details.Language__c})) = &quot;francais&quot;
+  ),
+  &quot;FR&quot;,
+  IF(
+    OR(
+      LOWER(TEXT({!Get_Contact_Details.Language__c})) = &quot;italian&quot;,
+      LOWER(TEXT({!Get_Contact_Details.Language__c})) = &quot;it&quot;,
+      LOWER(TEXT({!Get_Contact_Details.Language__c})) = &quot;italiano&quot;
+    ),
+    &quot;IT&quot;,
+    &quot;EN&quot;
+  )
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Formate la date du meeting dans la langue de l&apos;email (varFirstLanguage). EN → January 15, 2025 / FR → 15 janvier 2025 / IT → 15 gennaio 2025. Évite le format japonais lié à la locale Salesforce de l&apos;utilisateur.</description>
+        <name>formattedMeetingDate</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  {!varFirstLanguage} = &quot;EN&quot;,
+  CASE(MONTH({!Get_Campaign.Dateofmeeting__c}),
+    1, &quot;January&quot;, 2, &quot;February&quot;, 3, &quot;March&quot;, 4, &quot;April&quot;,
+    5, &quot;May&quot;, 6, &quot;June&quot;, 7, &quot;July&quot;, 8, &quot;August&quot;,
+    9, &quot;September&quot;, 10, &quot;October&quot;, 11, &quot;November&quot;, 12, &quot;December&quot;, &quot;Month&quot;
+  ) &amp; &quot; &quot; &amp; TEXT(DAY({!Get_Campaign.Dateofmeeting__c})) &amp; &quot;, &quot; &amp; TEXT(YEAR({!Get_Campaign.Dateofmeeting__c})),
+
+  IF(
+    {!varFirstLanguage} = &quot;FR&quot;,
+    TEXT(DAY({!Get_Campaign.Dateofmeeting__c})) &amp; &quot; &quot; &amp;
+    CASE(MONTH({!Get_Campaign.Dateofmeeting__c}),
+      1, &quot;janvier&quot;, 2, &quot;février&quot;, 3, &quot;mars&quot;, 4, &quot;avril&quot;,
+      5, &quot;mai&quot;, 6, &quot;juin&quot;, 7, &quot;juillet&quot;, 8, &quot;août&quot;,
+      9, &quot;septembre&quot;, 10, &quot;octobre&quot;, 11, &quot;novembre&quot;, 12, &quot;décembre&quot;, &quot;mois&quot;
+    ) &amp; &quot; &quot; &amp; TEXT(YEAR({!Get_Campaign.Dateofmeeting__c})),
+
+    IF(
+      {!varFirstLanguage} = &quot;IT&quot;,
+      TEXT(DAY({!Get_Campaign.Dateofmeeting__c})) &amp; &quot; &quot; &amp;
+      CASE(MONTH({!Get_Campaign.Dateofmeeting__c}),
+        1, &quot;gennaio&quot;, 2, &quot;febbraio&quot;, 3, &quot;marzo&quot;, 4, &quot;aprile&quot;,
+        5, &quot;maggio&quot;, 6, &quot;giugno&quot;, 7, &quot;luglio&quot;, 8, &quot;agosto&quot;,
+        9, &quot;settembre&quot;, 10, &quot;ottobre&quot;, 11, &quot;novembre&quot;, 12, &quot;dicembre&quot;, &quot;mese&quot;
+      ) &amp; &quot; &quot; &amp; TEXT(YEAR({!Get_Campaign.Dateofmeeting__c})),
+
+      CASE(MONTH({!Get_Campaign.Dateofmeeting__c}),
+        1, &quot;January&quot;, 2, &quot;February&quot;, 3, &quot;March&quot;, 4, &quot;April&quot;,
+        5, &quot;May&quot;, 6, &quot;June&quot;, 7, &quot;July&quot;, 8, &quot;August&quot;,
+        9, &quot;September&quot;, 10, &quot;October&quot;, 11, &quot;November&quot;, 12, &quot;December&quot;, &quot;Month&quot;
+      ) &amp; &quot; &quot; &amp; TEXT(DAY({!Get_Campaign.Dateofmeeting__c})) &amp; &quot;, &quot; &amp; TEXT(YEAR({!Get_Campaign.Dateofmeeting__c}))
+    )
+  )
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Wrappe le contenu du champ Additional_Notes__c dans un paragraphe HTML stylé pour l&apos;intégrer proprement dans le corps de l&apos;email</description>
+        <name>fxAdditionalNotes</name>
+        <dataType>String</dataType>
+        <expression>&quot;&lt;p style=&apos;margin-top:20px; color:#000000;&apos;&gt;&quot; &amp; {!Get_Campaign.Additional_Notes__c} &amp; &quot;&lt;/p&gt;&quot;</expression>
+    </formulas>
+    <formulas>
+        <description>Construit le fragment a ajouter a la liste INCI du produit courant, avec separateur '&amp;amp;' entre plusieurs INCI</description>
+        <name>fxCurrentInciConcat</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  ISBLANK({!Loop_Through_Product_Components.Substance_INCI__c}),
+  &quot;&quot;,
+  IF(
+    ISBLANK({!varProductINCI}),
+    {!Loop_Through_Product_Components.Substance_INCI__c},
+    &quot; &amp;amp; &quot; &amp; {!Loop_Through_Product_Components.Substance_INCI__c}
+  )
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Nom affiche dans la signature email. Fallback sur Owner standard si Owner_Name__r est vide.</description>
+        <name>ownerSignatureName</name>
+        <dataType>String</dataType>
+        <expression>IF(
+    ISBLANK({!Get_Campaign.Owner_Name__r.Name}),
+    {!Get_Owner.Name},
+    {!Get_Campaign.Owner_Name__r.Name}
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Convertit la picklist Language__c du contact (French/English/Italian) en code langue (FR/EN/IT) pour le membre courant dans la boucle Loop_Through_Members. Utilise Get_Member_Contact.Language__c. Retourne EN par défaut.</description>
+        <name>fxCurrentMemberLanguageCode</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  OR(
+    LOWER(TEXT({!Get_Member_Contact.Language__c})) = &quot;french&quot;,
+    LOWER(TEXT({!Get_Member_Contact.Language__c})) = &quot;fr&quot;,
+    LOWER(TEXT({!Get_Member_Contact.Language__c})) = &quot;français&quot;,
+    LOWER(TEXT({!Get_Member_Contact.Language__c})) = &quot;francais&quot;
+  ),
+  &quot;FR&quot;,
+  IF(
+    OR(
+      LOWER(TEXT({!Get_Member_Contact.Language__c})) = &quot;italian&quot;,
+      LOWER(TEXT({!Get_Member_Contact.Language__c})) = &quot;it&quot;,
+      LOWER(TEXT({!Get_Member_Contact.Language__c})) = &quot;italiano&quot;
+    ),
+    &quot;IT&quot;,
+    &quot;EN&quot;
+  )
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Génère la phrase HTML de devis au pluriel dans la langue détectée, utilisée quand plus d&apos;un produit a la case Quotation cochée</description>
+        <name>fxMultipleQuotationsSentence</name>
+        <dataType>String</dataType>
+        <expression>&quot;&lt;p style=&apos;margin-top:30px; color:#000000;&apos;&gt;&quot; &amp;
+CASE(
+  {!varFirstLanguage},
+  
+  &quot;EN&quot;, 
+  &quot;You will find attached our price offers for the materials presented above.&quot;,
+  
+  &quot;FR&quot;, 
+  &quot;Vous trouverez en pièce jointe nos offres de prix pour les matières présentées ci-dessus.&quot;,
+  
+  &quot;IT&quot;, 
+  &quot;Troverete in allegato le nostre offerte di prezzo per i materiali presentati.&quot;,
+  
+  &quot;Vous trouverez en pièce jointe nos offres de prix pour les matières présentées ci-dessus.&quot;
+) &amp;
+&quot;&lt;/p&gt;&quot;</expression>
+    </formulas>
+    <formulas>
+        <description>Génère la phrase HTML d&apos;annonce d&apos;envoi d&apos;échantillons dans la langue détectée. N&apos;est ajoutée au corps de l&apos;email que si au moins un produit a la case Sample cochée</description>
+        <name>fxSampleSentence</name>
+        <dataType>String</dataType>
+        <expression>&quot;&lt;p style=&apos;margin-top:30px; color:#000000;&apos;&gt;&quot; &amp;
+CASE(
+  {!varFirstLanguage},
+  
+  &quot;EN&quot;, 
+  &quot;You will soon receive another e-mail to inform you of the departure of the samples you have requested.&quot;,
+  
+  &quot;FR&quot;, 
+  &quot;Vous recevrez prochainement un autre mail pour vous avertir du départ des échantillons que vous m&apos;avez demandés.&quot;,
+  
+  &quot;IT&quot;, 
+  &quot;Seguirà a breve una ulteriore comunicazione relativa alla spedizione dei campioni richiesti.&quot;,
+  
+  &quot;You will soon receive another e-mail to inform you of the departure of the samples you have requested.&quot;
+) &amp;
+&quot;&lt;/p&gt;&quot;</expression>
+    </formulas>
+    <formulas>
+        <description>Génère la phrase HTML de devis au singulier avec le nom du produit en gras, utilisée quand exactement un produit a la case Quotation cochée</description>
+        <name>fxSingleQuotationSentence</name>
+        <dataType>String</dataType>
+        <expression>&quot;&lt;p style=&apos;margin-top:30px; color:#000000;&apos;&gt;&quot; &amp;
+CASE(
+  {!varFirstLanguage},
+  
+  &quot;EN&quot;, 
+  &quot;You will find attached our price offer for &lt;strong&gt;&quot; &amp; {!varQuotationProductName} &amp; &quot;&lt;/strong&gt;.&quot;,
+  
+  &quot;FR&quot;, 
+  &quot;Vous trouverez en pièce jointe notre offre de prix pour la matière &lt;strong&gt;&quot; &amp; {!varQuotationProductName} &amp; &quot;&lt;/strong&gt;.&quot;,
+  
+  &quot;IT&quot;, 
+  &quot;Troverete in allegato la nostra offerta di prezzo per &lt;strong&gt;&quot; &amp; {!varQuotationProductName} &amp; &quot;&lt;/strong&gt;.&quot;,
+  
+  &quot;Vous trouverez en pièce jointe notre offre de prix pour la matière &lt;strong&gt;&quot; &amp; {!varQuotationProductName} &amp; &quot;&lt;/strong&gt;.&quot;
+) &amp;
+&quot;&lt;/p&gt;&quot;</expression>
+    </formulas>
+    <formulas>
+        <description>URL catalogue prete pour href HTML: force le protocole et encode &amp; pour eviter les liens non cliquables.</description>
+        <name>HtmlCatalogUrl</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  OR(
+    BEGINS(LOWER({!SafeCatalogUrl}), &quot;http://&quot;),
+    BEGINS(LOWER({!SafeCatalogUrl}), &quot;https://&quot;)
+  ),
+  {!SafeCatalogUrl},
+  &quot;https://&quot; &amp; {!SafeCatalogUrl}
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Sujet final propre: template si dispo puis remplacement du merge field Campaign, avec nettoyage des wrappers {! ... } residuels.</description>
+        <name>ResolvedEmailSubject</name>
+        <dataType>String</dataType>
+        <expression>SUBSTITUTE(
+  SUBSTITUTE(
+    IF(
+      ISBLANK({!Get_Email_Template.Subject}),
+      {!emailSubject},
+      SUBSTITUTE(
+        {!Get_Email_Template.Subject},
+        &quot;&quot; &amp; &quot;Campaign.Email_Subject__c&quot; &amp; &quot;&quot;,
+        {!emailSubject}
+      )
+    ),
+    &quot;&quot;,
+    &quot;&quot;
+  ),
+  &quot;&quot;,
+  &quot;&quot;
+)</expression>
+    </formulas>
+    <formulas>
+        <description>URL catalogue securisee: fallback site IWASE si le champ Catalog est vide.</description>
+        <name>SafeCatalogUrl</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  ISBLANK({!Get_Product_Details.Catalog__c}),
+  &quot;https://iwasecosfa.eu/&quot;,
+  {!Get_Product_Details.Catalog__c}
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Nettoie le body final: retire placeholders Campaign et wrappers {! ... } residuels qui degradent le rendu.</description>
+        <name>SanitizedHtmlBody</name>
+        <dataType>String</dataType>
+        <expression>SUBSTITUTE(
+  SUBSTITUTE(
+    SUBSTITUTE(
+      SUBSTITUTE({!htmlBody}, &quot;&quot; &amp; &quot;Campaign.Email_Body_HTML__c&quot; &amp; &quot;&quot;, &quot;&quot;),
+      &quot;&quot; &amp; &quot;Campaign.Email_Subject__c&quot; &amp; &quot;&quot;,
+      &quot;&quot;
+    ),
+    &quot;&quot;,
+    &quot;&quot;
+  ),
+  &quot;&quot;,
+  &quot;&quot;
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Point de depart du body: header flow uniquement (evite les parties statiques multilingues du template qui melangent les langues).</description>
+        <name>TemplateInitialBody</name>
+        <dataType>String</dataType>
+        <expression>{!emailHeader}</expression>
+    </formulas>
+    <interviewLabel>Email Meeting Report {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Email Meeting Report</label>
+    <loops>
+        <description>Itère sur les composants du produit courant pour construire la liste INCI affichee dans le titre produit</description>
+        <name>Loop_Through_Product_Components</name>
+        <label>Loop Through Product Components</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Product_Components</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Add_Component_INCI_to_List</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Build_Product_HTML_Header</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Itère sur chaque formule (Presented_Product_Formula__c) du produit courant pour générer un lien HTML cliquable par formule</description>
+        <name>Loop_Through_Formulas</name>
+        <label>Loop Through Formulas</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Formulas_for_this_Product</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Add_Formula_to_HTML</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Close_Formulas_Section</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Boucle sur tous les CampaignMembers pour analyser leurs langues. Pour chaque membre : récupère le contact, lit sa langue, compare avec le 1er membre. À la fin de la boucle, on sait si tous les membres ont la même langue ou non → enchaîne vers Determine_Language_From_Members.</description>
+        <name>Loop_Through_Members</name>
+        <label>Loop Through Members</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_All_Campaign_Members</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Get_Member_Contact</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Determine_Language_From_Members</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Boucle principale : itère sur chaque produit présenté lors du meeting pour construire le corps de l&apos;email produit par produit (en-tête + formules + quotation)</description>
+        <name>Loop_Through_Presented_Products</name>
+        <label>Loop Through Presented Products</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Presented_Products</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Get_Formulas_for_this_Product</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Check_Quotation_Count</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <description>Récupère TOUS les CampaignMembers liés à ce Campaign (triés par CreatedDate ASC). La collection est ensuite parcourue dans Loop_Through_Members pour analyser les langues de chaque contact et déterminer la langue de l&apos;email.</description>
+        <name>Get_All_Campaign_Members</name>
+        <label>Get All Campaign Members</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Loop_Through_Members</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>CampaignId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>CampaignMember</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>ContactId</queriedFields>
+        <sortField>CreatedDate</sortField>
+        <sortOrder>Asc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Récupère le Campaign (rapport de RDV) à partir du recordId passé en entrée du flow. Contient les infos du meeting : date, compte client, propriétaire</description>
+        <name>Get_Campaign</name>
+        <label>Get Campaign</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Owner</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Campaign</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Récupère le nom du propriétaire standard (Owner) pour garantir la signature même si Owner_Name__c n&apos;est pas renseigné.</description>
+        <name>Get_Owner</name>
+        <label>Get Owner</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Email_Template</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Campaign.OwnerId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>User</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Name</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Récupère les détails du premier contact (prénom, nom, email, langue) pour personnaliser la salutation de l&apos;email. Appelé après la boucle d&apos;analyse des langues, utilise le ContactId stocké dans varFirstContactId.</description>
+        <name>Get_Contact_Details</name>
+        <label>Get Contact Details</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Determine_Email_Content</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>varFirstContactId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Contact</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>FirstName</queriedFields>
+        <queriedFields>LastName</queriedFields>
+        <queriedFields>Email</queriedFields>
+        <queriedFields>Language__c</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Récupère le template Meeting Report Follow-Up pour pre-remplir sujet/body sans le lier au composer.</description>
+        <name>Get_Email_Template</name>
+        <label>Get Email Template</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_All_Campaign_Members</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>00XIV00000QdfkH2AR</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>EmailTemplate</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Subject</queriedFields>
+        <queriedFields>HtmlValue</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Récupère toutes les formules (Presented_Product_Formula__c) liées au produit présenté courant ET au meeting report. Utilisé pour afficher les liens vers les formules dans l&apos;email</description>
+        <name>Get_Formulas_for_this_Product</name>
+        <label>Get Formulas for this Product</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Product_Details</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Meeting_report__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Presented_product__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Loop_Through_Presented_Products.Id</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Presented_Product_Formula__c</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Dans la boucle Loop_Through_Members : récupère le contact du CampaignMember courant pour lire sa langue (Language__c). Utilisé pour comparer les langues de tous les membres et déterminer la langue finale de l&apos;email.</description>
+        <name>Get_Member_Contact</name>
+        <label>Get Member Contact</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Analyze_Member_Language</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Loop_Through_Members.ContactId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Contact</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Language__c</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Récupère tous les produits présentés (Rapport_de_produit__c) liés à ce Campaign via le champ RapportRDV__c. C&apos;est la liste sur laquelle on boucle pour construire l&apos;email</description>
+        <name>Get_Presented_Products</name>
+        <label>Get Presented Products</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Initialize_HTML_Header</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>RapportRDV__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Rapport_de_produit__c</object>
+        <sortField>Name</sortField>
+        <sortOrder>Asc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Recupere les composants du produit courant pour extraire leurs INCI dans l'email de meeting report</description>
+        <name>Get_Product_Components</name>
+        <label>Get Product Components</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Loop_Through_Product_Components</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Product__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Product_Details.Id</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Substance_INCI__c</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Component__c</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Substance_INCI__c</queriedFields>
+        <sortField>Substance_INCI__c</sortField>
+        <sortOrder>Asc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Récupère les détails du Product2 lié au produit présenté courant : nom, bullet points (EN/FR/IT) et lien catalogue pour construire le bloc HTML</description>
+        <name>Get_Product_Details</name>
+        <label>Get Product Details</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Reset_Formulas_HTML</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Loop_Through_Presented_Products.Product__c</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Product2</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Name</queriedFields>
+        <queriedFields>Bullet_Point_EN__c</queriedFields>
+        <queriedFields>Bullet_Point_FR__c</queriedFields>
+        <queriedFields>Bullet_Point_IT__c</queriedFields>
+        <queriedFields>Catalog__c</queriedFields>
+        <queriedFields>Dark_Product_Name__c</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <description>Sauvegarde le HTML de l&apos;email dans le champ Email_Body_HTML__c du Campaign</description>
+        <name>Update_Campaign_Email_Body</name>
+        <label>Update Campaign Email Body</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Email_Body_HTML__c</field>
+            <value>
+                <elementReference>htmlBody</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Email_Subject__c</field>
+            <value>
+                <elementReference>emailSubject</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Campaign</object>
+    </recordUpdates>
+    <runInMode>SystemModeWithoutSharing</runInMode>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Campaign</targetReference>
+        </connector>
+    </start>
+    <status>Draft</status>
+    <textTemplates>
+        <description>Footer de l&apos;email en anglais : annonce envoi échantillons, formule de politesse, nom du propriétaire et signature texte complète IWASE COSFA EUROPE</description>
+        <name>emailFooterEN</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>&lt;p style=&apos;margin-top:15px; color:#000000;&apos;&gt;I remain at your disposal if you require any further information.&lt;/p&gt;
+
+&lt;p style=&apos;margin-top:15px; color:#000000;&apos;&gt;Best Regards,&lt;/p&gt;
+
+&lt;p style=&apos;margin-top:20px;&apos;&gt;&amp;nbsp;&lt;/p&gt;
+&lt;p style=&apos;margin-top:20px; color:#000000; font-weight:bold;&apos;&gt;{!ownerSignatureName}&lt;/p&gt;
+
+&lt;p style=&apos;margin-top:12px; color:#000000; font-weight:bold;&apos;&gt;IWASE COSFA EUROPE&lt;/p&gt;
+&lt;p style=&apos;margin:4px 0; color:#666;&apos;&gt;44 avenue Georges Pompidou, 92300 Levallois Perret, FRANCE&lt;/p&gt;
+&lt;p style=&apos;margin:4px 0; color:#666;&apos;&gt;Tel : +33 1 78 99 42 00&lt;/p&gt;
+&lt;p style=&apos;margin:8px 0;&apos;&gt;&lt;a href=&apos;https://iwasecosfa.eu/&apos; target=&apos;_blank&apos; style=&apos;color:#0070d2;&apos;&gt;https://iwasecosfa.eu/&lt;/a&gt;&lt;/p&gt;</text>
+    </textTemplates>
+    <textTemplates>
+        <description>Footer de l&apos;email en français : annonce envoi échantillons, formule de politesse, nom du propriétaire et signature complète IWASE COSFA EUROPE avec adresse et liens</description>
+        <name>emailFooterFR</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>&lt;p style=&apos;margin-top:15px; color:#000000;&apos;&gt;Je reste à votre disposition si vous souhaitez des informations complémentaires.&lt;/p&gt;
+
+&lt;p style=&apos;margin-top:15px; color:#000000;&apos;&gt;Bien cordialement,&lt;/p&gt;
+
+&lt;p style=&apos;margin-top:20px;&apos;&gt;&amp;nbsp;&lt;/p&gt;
+&lt;p style=&apos;margin-top:20px; color:#000000; font-weight:bold;&apos;&gt;{!ownerSignatureName}&lt;/p&gt;
+
+&lt;p style=&apos;margin-top:12px; color:#000000; font-weight:bold;&apos;&gt;IWASE COSFA EUROPE&lt;/p&gt;
+&lt;p style=&apos;margin:4px 0; color:#666;&apos;&gt;44 avenue Georges Pompidou, 92300 Levallois Perret, FRANCE&lt;/p&gt;
+&lt;p style=&apos;margin:4px 0; color:#666;&apos;&gt;Tel : +33 1 78 99 42 00&lt;/p&gt;
+&lt;p style=&apos;margin:8px 0;&apos;&gt;&lt;a href=&apos;https://iwasecosfa.eu/&apos; target=&apos;_blank&apos; style=&apos;color:#0070d2;&apos;&gt;https://iwasecosfa.eu/&lt;/a&gt;&lt;/p&gt;</text>
+    </textTemplates>
+    <textTemplates>
+        <description>Footer de l&apos;email en italien : annonce envoi échantillons, formule de politesse, nom du propriétaire et signature texte complète IWASE COSFA EUROPE</description>
+        <name>emailFooterIT</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>&lt;p style=&apos;margin-top:15px; color:#000000;&apos;&gt;Per qualsiasi necessità o ulteriore informazione, si rimane a disposizione..&lt;/p&gt;
+
+&lt;p style=&apos;margin-top:15px; color:#000000;&apos;&gt;Buona giornata.&lt;/p&gt;
+
+&lt;p style=&apos;margin-top:20px;&apos;&gt;&amp;nbsp;&lt;/p&gt;
+&lt;p style=&apos;margin-top:20px; color:#000000; font-weight:bold;&apos;&gt;{!ownerSignatureName}&lt;/p&gt;
+
+&lt;p style=&apos;margin-top:12px; color:#000000; font-weight:bold;&apos;&gt;IWASE COSFA EUROPE&lt;/p&gt;
+&lt;p style=&apos;margin:4px 0; color:#666;&apos;&gt;44 avenue Georges Pompidou, 92300 Levallois Perret, FRANCE&lt;/p&gt;
+&lt;p style=&apos;margin:4px 0; color:#666;&apos;&gt;Tel : +33 1 78 99 42 00&lt;/p&gt;
+&lt;p style=&apos;margin:8px 0;&apos;&gt;&lt;a href=&apos;https://iwasecosfa.eu/&apos; target=&apos;_blank&apos; style=&apos;color:#0070d2;&apos;&gt;https://iwasecosfa.eu/&lt;/a&gt;&lt;/p&gt;</text>
+    </textTemplates>
+    <textTemplates>
+        <description>Header de l&apos;email en anglais : salutation avec prénom/nom du contact et phrase d&apos;introduction sur les ingrédients discutés</description>
+        <name>emailHeaderEN</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>&lt;p&gt;Dear {!Get_Contact_Details.FirstName} {!Get_Contact_Details.LastName},&lt;/p&gt;
+&lt;p&gt;Thank you for receiving us. As promised, here are the details of our discussion:&lt;/p&gt;
+&lt;p style=&apos;font-weight:bold; color:#000000; font-size:14px; margin-top:20px;&apos;&gt;These are the ingredients we discussed:&lt;/p&gt;</text>
+    </textTemplates>
+    <textTemplates>
+        <description>Header de l&apos;email en français formel : salutation &apos;Bonjour&apos;, remerciement avec date du RDV et introduction sur les ingrédients discutés</description>
+        <name>emailHeaderFR</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>&lt;p&gt;Bonjour,&lt;/p&gt;
+&lt;p&gt;Tout d’abord, je vous remercie pour notre RDV du {!formattedMeetingDate}, c’était un plaisir d’échanger avec vous.&lt;/p&gt;
+&lt;p&gt;Voici les ingrédients dont nous avons discuté :&lt;/p&gt;</text>
+    </textTemplates>
+    <textTemplates>
+        <description>Header de l&apos;email en italien formel : salutation &apos;Buongiorno&apos;, remerciement avec date du RDV et introduction sur les ingrédients discutés</description>
+        <name>emailHeaderIT</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>&lt;p&gt;Buongiorno,&lt;/p&gt;
+
+&lt;p&gt;Grazie mille ancora per l’incontro {!formattedMeetingDate} : che è stato un momento di confronto molto interessante.&lt;/p&gt;
+
+&lt;p&gt;Di seguito sono riportati gli ingredienti discussi:&lt;/p&gt;</text>
+    </textTemplates>
+    <textTemplates>
+        <description>Template de l&apos;objet email en anglais (non utilisé directement dans le flow, le sujet est défini dans l&apos;assignment Set_English_Content)</description>
+        <name>EnglishSubject</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>&lt;p&gt;Follow up meeting {!formattedMeetingDate} {!Get_Campaign.Account_name__r.Name&lt;/span&gt;} - IWASE&lt;/p&gt;</text>
+    </textTemplates>
+    <textTemplates>
+        <description>Template de l&apos;objet email en français (non utilisé directement dans le flow, le sujet est défini dans l&apos;assignment Set_French_Formal_Content)</description>
+        <name>FrenchSubject</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>&lt;p&gt;Suite RDV du {!formattedMeetingDate} {!Get_Campaign.Account_name__r.Name}&lt;/span&gt; - IWASE&lt;/p&gt;</text>
+    </textTemplates>
+    <textTemplates>
+        <description>Template de l&apos;objet email en italien (non utilisé directement dans le flow, le sujet est défini dans l&apos;assignment Set_Italian_Formal_Content)</description>
+        <name>ItalianSubject</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>&lt;p&gt;Seguito dell&apos;appuntamento {!formattedMeetingDate} {!Get_Campaign.Account_name__r.Name} - IWASE&lt;/p&gt;</text>
+    </textTemplates>
+    <textTemplates>
+        <description>Template HTML d&apos;un item formule : affiche le nom de la formule comme lien cliquable (utilise Formula_Link__c) avec une flèche › devant</description>
+        <name>tt_FormulaItem</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>&lt;div style=&quot;font-family: Arial, Helvetica, sans-serif; margin-bottom: 4px;&quot;&gt;
+    &lt;a href=&quot;{!Loop_Through_Formulas.Formula__r.Formula_Link__c}&quot; target=&quot;_blank&quot; style=&quot;color: #0176d3; text-decoration: none; font-size: 14px; font-weight: bold;&quot;&gt;
+        &lt;span style=&quot;margin-right: 5px;&quot;&gt;›&lt;/span&gt; {!Loop_Through_Formulas.Formula__r.Name}
+    &lt;/a&gt;
+&lt;/div&gt;</text>
+    </textTemplates>
+    <textTemplates>
+        <description>Template HTML du titre de la section formules : affiche le texte traduit (ex: &apos;Formules associées :&apos;) en gras</description>
+        <name>tt_FormulaTitle</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>&lt;div style=&quot;font-family: Arial, Helvetica, sans-serif; margin-top: 10px; margin-bottom: 5px;&quot;&gt;
+    &lt;span style=&quot;font-size: 15px; font-weight: bold; color: #000000;&quot;&gt;{!formulasSectionTitle}&lt;/span&gt;
+&lt;/div&gt;</text>
+    </textTemplates>
+    <textTemplates>
+        <description>Template HTML de l&apos;en-tête d&apos;un produit : nom du produit en gras, bullet point dans la langue du contact et lien &apos;Télécharger le catalogue&apos; vers Catalog__c</description>
+        <name>tt_ProductHeader</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>&lt;div style=&quot;font-family: Arial, Helvetica, sans-serif; margin-top: 25px;&quot;&gt;
+    &lt;div style=&quot;color: #000000; font-size: 16px; font-weight: bold;&quot;&gt;{!DisplayProductNameWithINCI}&lt;/div&gt;
+    &lt;div style=&quot;color: #333333; font-size: 15px; margin: 4px 0;&quot;&gt;{!CurrentBulletPoint}&lt;/div&gt;
+    &lt;a href=&quot;{!HtmlCatalogUrl}&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot; style=&quot;color: #0176d3; font-size: 14px; text-decoration: underline; font-weight: bold; display:inline-block; margin-top:4px;&quot;&gt;
+        › {!catalogLinkText}
+    &lt;/a&gt;
+&lt;/div&gt;</text>
+    </textTemplates>
+    <variables>
+        <name>bulletPointField</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>catalogLinkText</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>emailFooter</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>emailHeader</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>emailSubject</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>EmailTone</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>formulasSectionTitle</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>htmlBody</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>htmlFormulas</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>htmlProduct</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>varProductINCI</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>recordId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>varAllSameLanguage</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>true</booleanValue>
+        </value>
+    </variables>
+    <variables>
+        <name>varFirstContactId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>varFirstLanguage</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>varMemberCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
+        <value>
+            <numberValue>0.0</numberValue>
+        </value>
+    </variables>
+    <variables>
+        <name>varQuotationCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
+        <value>
+            <numberValue>0.0</numberValue>
+        </value>
+    </variables>
+    <variables>
+        <name>varQuotationProductName</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>varQuotationSentence</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Flag booléen mis à true dès qu&apos;un produit présenté a la case Sample__c cochée. Utilisé après la boucle pour conditionner l&apos;affichage de la phrase d&apos;envoi d&apos;échantillons</description>
+        <name>varSampleRequested</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
+</Flow>
