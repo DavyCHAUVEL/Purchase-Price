@@ -1548,7 +1548,7 @@ CASE(
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>Recupere les composants du produit courant pour extraire leurs INCI dans l'email de meeting report</description>
+        <description>Recupere les composants du produit courant pour extraire leurs INCI dans l'email de meeting report, tries par concentration decroissante</description>
         <name>Get_Product_Components</name>
         <label>Get Product Components</label>
         <locationX>0</locationX>
@@ -1576,8 +1576,9 @@ CASE(
         <object>Component__c</object>
         <queriedFields>Id</queriedFields>
         <queriedFields>Substance_INCI__c</queriedFields>
-        <sortField>Substance_INCI__c</sortField>
-        <sortOrder>Asc</sortOrder>
+        <queriedFields>X0_0001_100__c</queriedFields>
+        <sortField>X0_0001_100__c</sortField>
+        <sortOrder>Desc</sortOrder>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
