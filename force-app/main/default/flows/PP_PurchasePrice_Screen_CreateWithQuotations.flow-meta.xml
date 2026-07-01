@@ -1,21 +1,23 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <apiVersion>65.0</apiVersion>
+    <description>Screen flow wizard: creation PP standard ou customer-specific avec quotations client.</description>
+
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
-    <choices>
-        <name>chPP_Standard</name>
-        <choiceText>Prix standard (pas de client specifique)</choiceText>
-        <dataType>String</dataType>
-        <value>
-            <stringValue>Standard</stringValue>
-        </value>
-    </choices>
     <choices>
         <name>chPP_Specific</name>
         <choiceText>Prix specifique a un ou plusieurs clients (quotations)</choiceText>
         <dataType>String</dataType>
         <value>
             <stringValue>Specific</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>chPP_Standard</name>
+        <choiceText>Prix standard (pas de client specifique)</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Standard</stringValue>
         </value>
     </choices>
     <customProperties>
@@ -50,35 +52,10 @@
         </rules>
     </decisions>
     <dynamicChoiceSets>
-        <name>dyn_Purchase_Price_Incoterm</name>
-        <dataType>Picklist</dataType>
-        <displayField xsi:nil="true"/>
-        <object xsi:nil="true"/>
-        <picklistField>Purchase_Price_Incoterm__c</picklistField>
-        <picklistObject>Purchase_Price__c</picklistObject>
-    </dynamicChoiceSets>
-    <dynamicChoiceSets>
-        <name>dyn_Purchase_Price_Currency</name>
-        <dataType>Picklist</dataType>
-        <displayField xsi:nil="true"/>
-        <object xsi:nil="true"/>
-        <picklistField>CurrencyIsoCode</picklistField>
-        <picklistObject>Purchase_Price__c</picklistObject>
-    </dynamicChoiceSets>
-    <dynamicChoiceSets>
         <name>dyn_Article</name>
         <dataType>String</dataType>
         <displayField>Name</displayField>
         <object>Article__c</object>
-        <sortField>Name</sortField>
-        <sortOrder>Asc</sortOrder>
-        <valueField>Id</valueField>
-    </dynamicChoiceSets>
-    <dynamicChoiceSets>
-        <name>dyn_Supplier_Account</name>
-        <dataType>String</dataType>
-        <displayField>Name</displayField>
-        <object>Account</object>
         <sortField>Name</sortField>
         <sortOrder>Asc</sortOrder>
         <valueField>Id</valueField>
@@ -92,16 +69,41 @@
         <sortOrder>Asc</sortOrder>
         <valueField>Id</valueField>
     </dynamicChoiceSets>
-    <environments>Default</environments>
-    <formulas>
-        <name>fx_Initial_Purchase_Price_Status</name>
+    <dynamicChoiceSets>
+        <name>dyn_Purchase_Price_Currency</name>
+        <dataType>Picklist</dataType>
+        <displayField xsi:nil="true"/>
+        <object xsi:nil="true"/>
+        <picklistField>CurrencyIsoCode</picklistField>
+        <picklistObject>Purchase_Price__c</picklistObject>
+    </dynamicChoiceSets>
+    <dynamicChoiceSets>
+        <name>dyn_Purchase_Price_Incoterm</name>
+        <dataType>Picklist</dataType>
+        <displayField xsi:nil="true"/>
+        <object xsi:nil="true"/>
+        <picklistField>Purchase_Price_Incoterm__c</picklistField>
+        <picklistObject>Purchase_Price__c</picklistObject>
+    </dynamicChoiceSets>
+    <dynamicChoiceSets>
+        <name>dyn_Supplier_Account</name>
         <dataType>String</dataType>
-        <expression>IF({!scrPP_inp_PriceType} = &quot;Specific&quot;, &quot;To Ask&quot;, &quot;To Confirm&quot;)</expression>
-    </formulas>
+        <displayField>Name</displayField>
+        <object>Account</object>
+        <sortField>Name</sortField>
+        <sortOrder>Asc</sortOrder>
+        <valueField>Id</valueField>
+    </dynamicChoiceSets>
+    <environments>Default</environments>
     <formulas>
         <name>fx_Done_Record_Url</name>
         <dataType>String</dataType>
         <expression>LEFT({!$Api.Partner_Server_URL_650}, FIND(&quot;/services&quot;, {!$Api.Partner_Server_URL_650}) - 1) &amp; &quot;/&quot; &amp; {!Create_Purchase_Price.Id}</expression>
+    </formulas>
+    <formulas>
+        <name>fx_Initial_Purchase_Price_Status</name>
+        <dataType>String</dataType>
+        <expression>IF({!scrPP_inp_PriceType} = &quot;Specific&quot;, &quot;To Ask&quot;, &quot;To Confirm&quot;)</expression>
     </formulas>
     <formulas>
         <name>fx_Supplier_For_Purchase_Price</name>
@@ -502,52 +504,6 @@
         <showHeader>true</showHeader>
     </screens>
     <screens>
-        <name>Scr_Quotation_Client</name>
-        <label>2 - Lien client (quotation)</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <allowBack>false</allowBack>
-        <allowFinish>true</allowFinish>
-        <allowPause>false</allowPause>
-        <connector>
-            <targetReference>Create_Quotation_Junction</targetReference>
-        </connector>
-        <fields>
-            <name>scrQ_help</name>
-            <fieldText>&lt;p&gt;Selectionnez le compte client concerne (lookup &lt;strong&gt;Customer&lt;/strong&gt;).&lt;/p&gt;&lt;p&gt;Vous pourrez completer d&apos;autres clients depuis la fiche &lt;em&gt;Customer&apos;s Purchase Quotation&lt;/em&gt; si necessaire.&lt;/p&gt;</fieldText>
-            <fieldType>DisplayText</fieldType>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
-        </fields>
-        <fields>
-            <name>scrQ_inp_Customer_Id</name>
-            <choiceReferences>dyn_Customer_Account</choiceReferences>
-            <dataType>String</dataType>
-            <fieldText>Compte client</fieldText>
-            <fieldType>DropdownBox</fieldType>
-            <helpText>Selectionner le client par son nom</helpText>
-            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
-            <isRequired>true</isRequired>
-            <styleProperties>
-                <verticalAlignment>
-                    <stringValue>top</stringValue>
-                </verticalAlignment>
-                <width>
-                    <stringValue>12</stringValue>
-                </width>
-            </styleProperties>
-        </fields>
-        <nextOrFinishButtonLabel>Enregistrer la quotation</nextOrFinishButtonLabel>
-        <showFooter>true</showFooter>
-        <showHeader>true</showHeader>
-    </screens>
-    <screens>
         <name>Scr_Done</name>
         <label>Termine</label>
         <locationX>0</locationX>
@@ -596,6 +552,52 @@
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
     </screens>
+    <screens>
+        <name>Scr_Quotation_Client</name>
+        <label>2 - Lien client (quotation)</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Create_Quotation_Junction</targetReference>
+        </connector>
+        <fields>
+            <name>scrQ_help</name>
+            <fieldText>&lt;p&gt;Selectionnez le compte client concerne (lookup &lt;strong&gt;Customer&lt;/strong&gt;).&lt;/p&gt;&lt;p&gt;Vous pourrez completer d&apos;autres clients depuis la fiche &lt;em&gt;Customer&apos;s Purchase Quotation&lt;/em&gt; si necessaire.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <fields>
+            <name>scrQ_inp_Customer_Id</name>
+            <choiceReferences>dyn_Customer_Account</choiceReferences>
+            <dataType>String</dataType>
+            <fieldText>Compte client</fieldText>
+            <fieldType>DropdownBox</fieldType>
+            <helpText>Selectionner le client par son nom</helpText>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <nextOrFinishButtonLabel>Enregistrer la quotation</nextOrFinishButtonLabel>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -605,5 +607,3 @@
     </start>
     <status>Active</status>
 </Flow>
-
-

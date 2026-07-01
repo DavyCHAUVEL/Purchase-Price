@@ -87,6 +87,15 @@ Une fois le processus termine, envoyer un email a Robin contenant:
 - les details du nouveau prix d'achat,
 - le lien vers l'enregistrement Salesforce concerne.
 
+## 4.3 Schema operationnel final (Creation / Update)
+
+- **Creation**: creation du `Purchase_Price__c` -> statut `To Confirm` -> soumission approbation -> approbation -> envoi email.
+- **Update**: lancement du flow d'update (clone/archive + recreation des quotations si customer-specific) -> statut `To Confirm` -> soumission approbation -> approbation -> envoi email.
+- **Routing approbation**: selection automatique du process selon `RecordType` (Standard vs Customer-Specific).
+- **Contenu mail creation**: message de creation de prix valide.
+- **Contenu mail update**: message explicite: `Un prix d'achat a ete Mis a jour et valide.`
+- **Contrainte client-specific**: passage a `To Confirm` bloque sans au moins une `Customer_s_Purchase_Quotation__c` associee.
+
 ---
 
 ## 5. Contraintes de mise en oeuvre (Salesforce)
@@ -107,4 +116,21 @@ Le process est considere conforme si:
 3. Les cas "validite immediate" et "validite future" sont correctement differencies.
 4. Les transitions automatiques `Future Price -> Validate` et `Validate -> Obsolete` sont actives.
 5. Le mail final a Robin est envoye avec les informations attendues.
+
+---
+
+## 7. Usage gstack (pilotage execution)
+
+Pour les travaux Purchase Price, gstack est utilise comme cadre d'execution dans Cursor.
+
+- Aucune connexion externe supplementaire n'est necessaire pour l'utiliser.
+- Commandes recommandees:
+  - `/gstack-review` (revue avant commit/PR),
+  - `/gstack-investigate` (analyse root cause en cas de bug),
+  - `/gstack-qa` (verifications fonctionnelles),
+  - `/gstack-ship` (preparation de livraison).
+- Consigne de prompt a appliquer:
+  - `Contexte Purchase Price. Applique .gbrain/.gstack. Priorite low-code (Flow) avant Apex. Apex uniquement si limitation Flow prouvee.`
+- Regle de gouvernance:
+  - exiger un plan de test concret et une liste des impacts objets/flows avant validation d'une implementation.
 

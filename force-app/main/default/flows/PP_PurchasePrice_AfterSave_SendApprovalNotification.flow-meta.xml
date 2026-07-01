@@ -1,6 +1,7 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
+        <description>Envoie le mail Robin quand un nouveau PP est approuve.</description>
         <name>Send_Email_New_Purchase_Price</name>
         <label>Send Email New Purchase Price</label>
         <locationX>0</locationX>
@@ -12,18 +13,6 @@
             <name>emailAddresses</name>
             <value>
                 <elementReference>fxNotificationRecipients</elementReference>
-            </value>
-        </inputParameters>
-        <inputParameters>
-            <name>senderType</name>
-            <value>
-                <stringValue>OrgWideEmailAddress</stringValue>
-            </value>
-        </inputParameters>
-        <inputParameters>
-            <name>senderAddress</name>
-            <value>
-                <stringValue>ice.sf-noreply@iwasecosfa.com</stringValue>
             </value>
         </inputParameters>
         <inputParameters>
@@ -45,8 +34,12 @@
             </value>
         </inputParameters>
         <nameSegment>emailSimple</nameSegment>
+        <faultConnector>
+            <targetReference>Email_Send_Failed_Skip</targetReference>
+        </faultConnector>
     </actionCalls>
     <actionCalls>
+        <description>Envoie le mail Robin quand une revision de PP est approuvee.</description>
         <name>Send_Email_Updated_Purchase_Price</name>
         <label>Send Email Updated Purchase Price</label>
         <locationX>0</locationX>
@@ -58,18 +51,6 @@
             <name>emailAddresses</name>
             <value>
                 <elementReference>fxNotificationRecipients</elementReference>
-            </value>
-        </inputParameters>
-        <inputParameters>
-            <name>senderType</name>
-            <value>
-                <stringValue>OrgWideEmailAddress</stringValue>
-            </value>
-        </inputParameters>
-        <inputParameters>
-            <name>senderAddress</name>
-            <value>
-                <stringValue>ice.sf-noreply@iwasecosfa.com</stringValue>
             </value>
         </inputParameters>
         <inputParameters>
@@ -91,12 +72,28 @@
             </value>
         </inputParameters>
         <nameSegment>emailSimple</nameSegment>
+        <faultConnector>
+            <targetReference>Email_Send_Failed_Skip</targetReference>
+        </faultConnector>
     </actionCalls>
     <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
-    <description>Envoie un email de notification detaille apres validation d'un Purchase Price. Le flow se declenche sur creation/mise a jour de Purchase_Price__c et envoie l'email uniquement quand le statut passe de To Confirm a Validate (approbation). L'email utilise une adresse Org-Wide (ice.sf-noreply@iwasecosfa.com), contient un lien cliquable vers le record et un recap des champs business. Le type de prix (standard vs specifique client) et la liste des clients concernes sont deduits des enregistrements Customer's Purchase Quotation lies (lignes distinctes Type de prix / Client(s) concernes dans le corps HTML).</description>
     <assignments>
-        <description>Concatene une ligne par quotation client (separateur ; ) pour le corps de l'email.</description>
+        <description>Chemin fault : echec envoi email ne doit pas bloquer l&apos;approbation du PP.</description>
+        <name>Email_Send_Failed_Skip</name>
+        <label>Email Send Failed Skip</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varFaultNoOp</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue></stringValue>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <assignments>
+        <description>Concatene une ligne par quotation client (separateur ; ) pour le corps de l&apos;email.</description>
         <name>Append_Current_Customer_Quotation_Line</name>
         <label>Append Current Customer Quotation Line</label>
         <locationX>0</locationX>
@@ -126,10 +123,11 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Get_Customer_Quotations_For_Purchase_Price</targetReference>
+            <targetReference>Get_Latest_Approved_ProcessInstance</targetReference>
         </connector>
     </assignments>
     <decisions>
+        <description>Distingue creation approuvee vs update approuvee pour choisir l&apos;objet du mail.</description>
         <name>Check_New_Or_Update</name>
         <label>Check New Or Update</label>
         <locationX>0</locationX>
@@ -166,59 +164,122 @@
             <label>Update Important Fields</label>
         </rules>
     </decisions>
+    <decisions>
+        <description>Routage entre envoi unique standard et envoi unitaire par quotation specific.</description>
+        <name>Specific_Or_Standard</name>
+        <label>Specific Or Standard</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Check_New_Or_Update</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Specific (single email)</defaultConnectorLabel>
+        <rules>
+            <name>Standard_Path</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>fxIsStandardNoQuotations</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Check_New_Or_Update</targetReference>
+            </connector>
+            <label>Standard</label>
+        </rules>
+    </decisions>
+    <description>Objectif: envoyer les notifications d&apos;approbation Purchase Price. Standard et customer-specific: un email recapitulatif unique a Robin, avec detail clients et commentaire approbateur. Declenchement: transition To Confirm vers Validate ou Future Price. Expediteur: defaut Salesforce (sandbox QA — remettre OWD ice.sf-noreply avant prod).</description>
     <environments>Default</environments>
     <formulas>
-        <description>Texte affichable de l'article (sans formule HYPERLINK : le champ Article_Name__c ne doit pas etre intercale tel quel dans un email riche).</description>
+        <description>Segment a ajouter pour la quotation courante dans la boucle (separateur ; si deja du texte).</description>
+        <name>fxAppendCurrentQuotationSegment</name>
+        <dataType>String</dataType>
+        <expression>IF(
+ISBLANK({!varQuotationLines}),
+&quot;• &quot;,
+&quot;&lt;br/&gt;• &quot;
+) &amp; IF(
+ISBLANK({!Loop_Customer_Quotations.Customer_Account_Name__c}),
+&quot;Compte client (nom indisponible)&quot;,
+{!Loop_Customer_Quotations.Customer_Account_Name__c}
+) &amp; &quot; [&quot; &amp; {!Loop_Customer_Quotations.Name} &amp; &quot;]&quot;</expression>
+    </formulas>
+    <formulas>
+        <description>Commentaire saisi par l&apos;approbateur sur la derniere etape approuvee.</description>
+        <name>fxApprovedComment</name>
+        <dataType>String</dataType>
+        <expression>IF(
+ISBLANK({!Get_Latest_Approved_Step.Comments}),
+&quot;&lt;i&gt;(Aucun commentaire approbateur saisi.)&lt;/i&gt;&quot;,
+{!Get_Latest_Approved_Step.Comments}
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Texte affichable de l&apos;article (sans formule HYPERLINK : le champ Article_Name__c ne doit pas etre intercale tel quel dans un email riche).</description>
         <name>fxArticlePlain</name>
         <dataType>String</dataType>
         <expression>IF(
 ISBLANK($Record.Article__c),
-"-",
+&quot;-&quot;,
 IF(
 ISBLANK($Record.Article__r.Product__r.Name),
-"-",
-$Record.Article__r.Product__r.Name &amp; " (" &amp; IF(OR(ISBLANK($Record.Article__r.Package_Size__c), $Record.Article__r.Package_Size__c &gt;= 1), TEXT($Record.Article__r.Package_Size__c), "0" &amp; TEXT($Record.Article__r.Package_Size__c)) &amp; " KG)"
+&quot;-&quot;,
+$Record.Article__r.Product__r.Name &amp; &quot; (&quot; &amp; IF(OR(ISBLANK($Record.Article__r.Package_Size__c), $Record.Article__r.Package_Size__c &gt;= 1), TEXT($Record.Article__r.Package_Size__c), &quot;0&quot; &amp; TEXT($Record.Article__r.Package_Size__c)) &amp; &quot; KG)&quot;
 )
 )</expression>
     </formulas>
     <formulas>
-        <name>fxRecordUrl</name>
+        <description>Assemble les 2 parties HTML du tableau recapitulatif standard.</description>
+        <name>fxBodyDetail</name>
         <dataType>String</dataType>
-        <expression>LEFT($Api.Partner_Server_URL_650, FIND("/services", $Api.Partner_Server_URL_650) - 1) &amp; "/" &amp; $Record.Id</expression>
+        <expression>{!fxBodyTable1} &amp; {!fxBodyTable2}</expression>
     </formulas>
     <formulas>
-        <name>fxPurchaseThrew</name>
+        <description>Corps email standard pour une creation approuvee.</description>
+        <name>fxBodyNew</name>
         <dataType>String</dataType>
-        <expression>IF(
-ISBLANK($Record.Article__r.Product__r.Name),
-"-",
-$Record.Article__r.Product__r.Name
-)</expression>
+        <expression>{!$Label.LB_Purchase_Price_Email_Body_New}
+&amp; &quot;&lt;br/&gt;&lt;br/&gt;&quot;
+&amp; {!fxBodyDetail}</expression>
     </formulas>
     <formulas>
         <description>HTML part 1/2 (limite longueur formule 3900 char).</description>
         <name>fxBodyTable1</name>
         <dataType>String</dataType>
-        <expression>"&lt;table style=&apos;border-collapse:collapse;font-size:14px;max-width:640px;&apos;&gt;&lt;colgroup&gt;&lt;col style=&apos;width:220px&apos;/&gt;&lt;col/&gt;&lt;/colgroup&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Nom du prix d&apos;achat :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&lt;a href=&apos;" &amp; fxRecordUrl &amp; "&apos;&gt;" &amp; $Record.Name &amp; "&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Article :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; fxArticlePlain &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Prix fabricant :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; IF(ISBLANK($Record.Manufacturer_Price__c), "-", TEXT($Record.Manufacturer_Price__c)) &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Produit d&apos;achat :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; fxPurchaseThrew &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Marge fournisseur (%) :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; IF(ISBLANK($Record.Supplier_Margin__c), "-", TEXT($Record.Supplier_Margin__c)) &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Prix d&apos;achat :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; IF(ISBLANK($Record.Purchase_Price__c), "-", TEXT($Record.Purchase_Price__c)) &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Devise :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; IF(ISBLANK(TEXT($Record.CurrencyIsoCode)), "-", TEXT($Record.CurrencyIsoCode)) &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;MOQ min :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; IF(ISBLANK($Record.Min_MOQ__c), "-", TEXT($Record.Min_MOQ__c)) &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;MOQ max :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; IF(ISBLANK($Record.Max_MOQ__c), "-", TEXT($Record.Max_MOQ__c)) &amp; "&lt;/td&gt;&lt;/tr&gt;"</expression>
+        <expression>&quot;&lt;table style=&apos;border-collapse:collapse;font-size:14px;max-width:640px;&apos;&gt;&lt;colgroup&gt;&lt;col style=&apos;width:220px&apos;/&gt;&lt;col/&gt;&lt;/colgroup&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Nom du prix d&apos;achat :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&lt;a href=&apos;&quot; &amp; fxRecordUrl &amp; &quot;&apos;&gt;&quot; &amp; $Record.Name &amp; &quot;&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Article :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; fxArticlePlain &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Prix fabricant :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; IF(ISBLANK($Record.Manufacturer_Price__c), &quot;-&quot;, TEXT($Record.Manufacturer_Price__c)) &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Produit d&apos;achat :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; fxPurchaseThrew &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Marge fournisseur (%) :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; IF(ISBLANK($Record.Supplier_Margin__c), &quot;-&quot;, TEXT($Record.Supplier_Margin__c)) &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Prix d&apos;achat :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; IF(ISBLANK($Record.Purchase_Price__c), &quot;-&quot;, TEXT($Record.Purchase_Price__c)) &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Devise :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; IF(ISBLANK(TEXT($Record.CurrencyIsoCode)), &quot;-&quot;, TEXT($Record.CurrencyIsoCode)) &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;MOQ min :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; IF(ISBLANK($Record.Min_MOQ__c), &quot;-&quot;, TEXT($Record.Min_MOQ__c)) &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;MOQ max :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; IF(ISBLANK($Record.Max_MOQ__c), &quot;-&quot;, TEXT($Record.Max_MOQ__c)) &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;</expression>
     </formulas>
     <formulas>
-        <description>Ligne courriel : standard vs prix spécifique (au moins une quotation liée).</description>
-        <name>fxEmail_TypePrix</name>
+        <description>HTML part 2/2 (Type de prix / clients, dates, statut, fin tableau).</description>
+        <name>fxBodyTable2</name>
         <dataType>String</dataType>
-        <expression>IF(
-ISBLANK({!varQuotationLines}),
-"Prix standard",
-"Prix spécifique à un ou plusieurs clients"
-)</expression>
+        <expression>&quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Incoterm (prix d&apos;achat) :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; IF(ISBLANK(TEXT($Record.Purchase_Price_Incoterm__c)), &quot;-&quot;, TEXT($Record.Purchase_Price_Incoterm__c)) &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Fournisseur :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; IF(ISBLANK($Record.Supplier__c), &quot;-&quot;, $Record.Supplier__r.Name) &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Type de prix :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; fxEmail_TypePrix &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Client(s) concerné(s) :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; fxEmail_ClientsConcernes &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Début de validité :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; IF(ISBLANK($Record.Start_Validity_Date__c), &quot;-&quot;, TEXT($Record.Start_Validity_Date__c)) &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Fin de validité :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; IF(ISBLANK($Record.End_Validity_Date__c), &quot;-&quot;, TEXT($Record.End_Validity_Date__c)) &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Statut :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; TEXT($Record.Status__c) &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Commentaire approbateur :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;&quot; &amp; fxApprovedComment &amp; &quot;&lt;/td&gt;&lt;/tr&gt;&quot;
+&amp; &quot;&lt;/table&gt;&quot;</expression>
+    </formulas>
+    <formulas>
+        <description>Corps email standard pour une mise a jour approuvee.</description>
+        <name>fxBodyUpdate</name>
+        <dataType>String</dataType>
+        <expression>{!$Label.LB_Purchase_Price_Email_Body_Update}
+&amp; &quot;&lt;br/&gt;&lt;br/&gt;&quot;
+&amp; {!fxBodyDetail}</expression>
     </formulas>
     <formulas>
         <description>Liste des comptes clients (noms + code quotation) pour un prix spécifique ; tiret si standard.</description>
@@ -226,93 +287,119 @@ ISBLANK({!varQuotationLines}),
         <dataType>String</dataType>
         <expression>IF(
 ISBLANK({!varQuotationLines}),
-"-",
+&quot;-&quot;,
 {!varQuotationLines}
 )</expression>
     </formulas>
     <formulas>
-        <description>HTML part 2/2 (Type de prix / clients, dates, statut, fin tableau).</description>
-        <name>fxBodyTable2</name>
-        <dataType>String</dataType>
-        <expression>"&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Incoterm (prix d&apos;achat) :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; IF(ISBLANK(TEXT($Record.Purchase_Price_Incoterm__c)), "-", TEXT($Record.Purchase_Price_Incoterm__c)) &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Fournisseur :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; IF(ISBLANK($Record.Supplier__c), "-", $Record.Supplier__r.Name) &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Type de prix :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; fxEmail_TypePrix &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Client(s) concerné(s) :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; fxEmail_ClientsConcernes &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Début de validité :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; IF(ISBLANK($Record.Start_Validity_Date__c), "-", TEXT($Record.Start_Validity_Date__c)) &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Fin de validité :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; IF(ISBLANK($Record.End_Validity_Date__c), "-", TEXT($Record.End_Validity_Date__c)) &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;tr&gt;&lt;td style=&apos;font-weight:bold;vertical-align:top;padding:4px 16px 4px 0;&apos;&gt;Statut :&lt;/td&gt;&lt;td style=&apos;vertical-align:top;padding:4px 0;&apos;&gt;" &amp; TEXT($Record.Status__c) &amp; "&lt;/td&gt;&lt;/tr&gt;"
-&amp; "&lt;/table&gt;"</expression>
-    </formulas>
-    <formulas>
-        <name>fxBodyDetail</name>
-        <dataType>String</dataType>
-        <expression>fxBodyTable1 &amp; fxBodyTable2</expression>
-    </formulas>
-    <formulas>
-        <name>fxBodyNew</name>
-        <dataType>String</dataType>
-        <expression>$Label.LB_Purchase_Price_Email_Body_New
-&amp; "&lt;br/&gt;&lt;br/&gt;"
-&amp; fxBodyDetail</expression>
-    </formulas>
-    <formulas>
-        <name>fxBodyUpdate</name>
-        <dataType>String</dataType>
-        <expression>$Label.LB_Purchase_Price_Email_Body_Update
-&amp; "&lt;br/&gt;&lt;br/&gt;"
-&amp; fxBodyDetail</expression>
-    </formulas>
-    <formulas>
-        <description>Segment a ajouter pour la quotation courante dans la boucle (separateur ; si deja du texte).</description>
-        <name>fxAppendCurrentQuotationSegment</name>
+        <description>Ligne courriel : standard vs customer-specific (pilotage par record type technique).</description>
+        <name>fxEmail_TypePrix</name>
         <dataType>String</dataType>
         <expression>IF(
-ISBLANK({!varQuotationLines}),
-"",
-"; "
-) &amp; IF(
-ISBLANK({!Loop_Customer_Quotations.Customer_Account_Name__c}),
-"Compte client (nom indisponible)",
-{!Loop_Customer_Quotations.Customer_Account_Name__c}
-) &amp; " [" &amp; {!Loop_Customer_Quotations.Name} &amp; "]"</expression>
+$Record.PP_Is_Customer_Specific_Type__c,
+&quot;Customer-Specific Price&quot;,
+&quot;Standard Price&quot;
+)</expression>
     </formulas>
     <formulas>
+        <description>Detecte une revision approuvee (To Confirm -&gt; Validate/Future Price avec PP_Revises renseigne).</description>
         <name>fxIsImportantUpdate</name>
         <dataType>Boolean</dataType>
         <expression>AND(
 NOT(ISNEW()),
 ISCHANGED($Record.Status__c),
-TEXT($Record.Status__c) = "Validate",
-TEXT($Record__Prior.Status__c) = "To Confirm"
+OR(
+TEXT($Record.Status__c) = &quot;Validate&quot;,
+TEXT($Record.Status__c) = &quot;Future Price&quot;
+),
+TEXT($Record__Prior.Status__c) = &quot;To Confirm&quot;,
+NOT(ISBLANK($Record.PP_Revises__c))
 )</expression>
     </formulas>
     <formulas>
+        <description>Detecte une creation approuvee (To Confirm -&gt; Validate/Future Price sans PP_Revises).</description>
         <name>fxIsNewRecord</name>
         <dataType>Boolean</dataType>
-        <expression>false</expression>
+        <expression>AND(
+NOT(ISNEW()),
+ISCHANGED($Record.Status__c),
+OR(
+TEXT($Record.Status__c) = &quot;Validate&quot;,
+TEXT($Record.Status__c) = &quot;Future Price&quot;
+),
+TEXT($Record__Prior.Status__c) = &quot;To Confirm&quot;,
+ISBLANK($Record.PP_Revises__c)
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Vrai si aucune quotation client n&apos;est liee au record approuve.</description>
+        <name>fxIsStandardNoQuotations</name>
+        <dataType>Boolean</dataType>
+        <expression>ISBLANK({!varQuotationLines})</expression>
     </formulas>
     <formulas>
         <description>Destinataires notification Purchase Price (Robin ou DL metier), configurable via label.</description>
         <name>fxNotificationRecipients</name>
         <dataType>String</dataType>
         <expression>IF(
-ISBLANK($Label.LB_Purchase_Price_Notification_Recipients),
-"robin@iwasecosfa.com",
-$Label.LB_Purchase_Price_Notification_Recipients
+ISBLANK({!$Label.LB_Purchase_Price_Notification_Recipients}),
+&quot;robin@iwasecosfa.com&quot;,
+{!$Label.LB_Purchase_Price_Notification_Recipients}
 )</expression>
     </formulas>
     <formulas>
-        <name>fxSubjectNew</name>
+        <name>fxPurchaseThrew</name>
         <dataType>String</dataType>
-        <expression>$Label.LB_Purchase_Price_Email_Subject &amp; " - Nouveau - " &amp; $Record.Name</expression>
+        <expression>IF(
+ISBLANK($Record.Article__r.Product__r.Name),
+&quot;-&quot;,
+$Record.Article__r.Product__r.Name
+)</expression>
     </formulas>
     <formulas>
+        <description>Construit l&apos;URL absolue du Purchase Price pour les emails.</description>
+        <name>fxRecordUrl</name>
+        <dataType>String</dataType>
+        <expression>LEFT($Api.Partner_Server_URL_650, FIND(&quot;/services&quot;, $Api.Partner_Server_URL_650) - 1) &amp; &quot;/&quot; &amp; $Record.Id</expression>
+    </formulas>
+    <formulas>
+        <description>Vrai pour premier passage a Validate (nouveau) ou revision (mise a jour approuvee).</description>
+        <name>fxShouldSendApprovalEmail</name>
+        <dataType>Boolean</dataType>
+        <expression>OR(
+{!fxIsNewRecord},
+{!fxIsImportantUpdate}
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Objet email standard pour creation approuvee.</description>
+        <name>fxSubjectNew</name>
+        <dataType>String</dataType>
+        <expression>$Label.LB_Purchase_Price_Email_Subject &amp; &quot; - Nouveau - &quot; &amp; $Record.Name</expression>
+    </formulas>
+    <formulas>
+        <description>Objet email standard pour update approuvee.</description>
         <name>fxSubjectUpdate</name>
         <dataType>String</dataType>
-        <expression>$Label.LB_Purchase_Price_Email_Subject &amp; " - Approuvé - " &amp; $Record.Name</expression>
+        <expression>$Label.LB_Purchase_Price_Email_Subject &amp; &quot; - Mise à jour approuvée - &quot; &amp; $Record.Name</expression>
     </formulas>
     <interviewLabel>PP_PurchasePrice_AfterSave_SendApprovalNotification {!$Flow.CurrentDateTime}</interviewLabel>
     <label>PP_PurchasePrice_AfterSave_SendApprovalNotification</label>
+    <loops>
+        <description>Parcourt les Customer&apos;s Purchase Quotations liees au Purchase Price pour construire la liste affichee dans l&apos;email.</description>
+        <name>Loop_Customer_Quotations</name>
+        <label>Loop Customer Quotations</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Customer_Quotations_For_Purchase_Price</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Append_Current_Customer_Quotation_Line</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Specific_Or_Standard</targetReference>
+        </noMoreValuesConnector>
+    </loops>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -332,21 +419,6 @@ $Label.LB_Purchase_Price_Notification_Recipients
         </value>
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
-    <loops>
-        <description>Parcourt les Customer's Purchase Quotations liees au Purchase Price pour construire la liste affichee dans l'email.</description>
-        <name>Loop_Customer_Quotations</name>
-        <label>Loop Customer Quotations</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <collectionReference>Get_Customer_Quotations_For_Purchase_Price</collectionReference>
-        <iterationOrder>Asc</iterationOrder>
-        <nextValueConnector>
-            <targetReference>Append_Current_Customer_Quotation_Line</targetReference>
-        </nextValueConnector>
-        <noMoreValuesConnector>
-            <targetReference>Check_New_Or_Update</targetReference>
-        </noMoreValuesConnector>
-    </loops>
     <recordLookups>
         <description>Recupere toutes les quotations client liees au Purchase Price courant (Purchase_Price__c sur Customer_s_Purchase_Quotation__c).</description>
         <name>Get_Customer_Quotations_For_Purchase_Price</name>
@@ -375,6 +447,71 @@ $Label.LB_Purchase_Price_Notification_Recipients
         <sortOrder>Asc</sortOrder>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
+    <recordLookups>
+        <description>Recupere la derniere instance d&apos;approbation approuvee du record.</description>
+        <name>Get_Latest_Approved_ProcessInstance</name>
+        <label>Get Latest Approved ProcessInstance</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Latest_Approved_Step</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>TargetObjectId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Status</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Approved</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>ProcessInstance</object>
+        <queriedFields>Id</queriedFields>
+        <sortField>CreatedDate</sortField>
+        <sortOrder>Desc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Recupere l&apos;etape approuvee la plus recente pour extraire le commentaire.</description>
+        <name>Get_Latest_Approved_Step</name>
+        <label>Get Latest Approved Step</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Customer_Quotations_For_Purchase_Price</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>ProcessInstanceId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Latest_Approved_ProcessInstance.Id</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>StepStatus</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Approved</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>ProcessInstanceStep</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Comments</queriedFields>
+        <sortField>CreatedDate</sortField>
+        <sortOrder>Desc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -387,6 +524,14 @@ $Label.LB_Purchase_Price_Notification_Recipients
     </start>
     <status>Active</status>
     <variables>
+        <description>No-op pour chemin fault email.</description>
+        <name>varFaultNoOp</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
         <description>Accumulateur des lignes quotation (clients + code auto) separees par ;</description>
         <name>varQuotationLines</name>
         <dataType>String</dataType>
@@ -395,6 +540,3 @@ $Label.LB_Purchase_Price_Notification_Recipients
         <isOutput>false</isOutput>
     </variables>
 </Flow>
-
-
-

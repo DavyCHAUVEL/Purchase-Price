@@ -1,7 +1,8 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>Objectif: gerer quotidiennement le cycle de vie des Purchase Prices. Regles: ToBeReplaced arrive a echeance vers Obsolete, Future Price arrive a date vers Validate, Validate sans date de fin arrive en revue 18 mois vers To Ask (PP_No_End_Review_Due__c), et To Ask marque NEGOTIATION_LOST vers Obsolete.</description>
     <environments>Default</environments>
     <interviewLabel>PP_PurchasePrice_Scheduled_ManageLifecycle {!$Flow.CurrentDateTime}</interviewLabel>
     <label>PP_PurchasePrice_Scheduled_ManageLifecycle</label>
@@ -24,8 +25,8 @@
         </value>
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
-    <description>Daily: ToBeReplaced+end passed → Obsolete; Future Price with start &lt;= today → Validate; Validate, no end date, 18+ months from start/created → To Ask (see PP_No_End_Review_Due__c); To Ask + Quotation_Comment marker NEGOTIATION_LOST → Obsolete</description>
     <recordLookups>
+        <description>Charge les prix en Future Price dont la date de debut est atteinte.</description>
         <name>Get_Future_Price_Records</name>
         <label>Get Future Price Records</label>
         <locationX>0</locationX>
@@ -54,6 +55,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
+        <description>Charge les anciens prix marques ToBeReplaced arrives a echeance.</description>
         <name>Get_To_Be_Replaced_Records</name>
         <label>Get To Be Replaced Records</label>
         <locationX>0</locationX>
@@ -82,68 +84,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordUpdates>
-        <name>Update_Pending_To_Validate</name>
-        <label>Update Pending To Validate</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <connector>
-            <targetReference>Update_Open_End_18M_To_Ask</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Status__c</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>Future Price</stringValue>
-            </value>
-        </filters>
-        <filters>
-            <field>Start_Validity_Date__c</field>
-            <operator>LessThanOrEqualTo</operator>
-            <value>
-                <elementReference>$Flow.CurrentDate</elementReference>
-            </value>
-        </filters>
-        <inputAssignments>
-            <field>Status__c</field>
-            <value>
-                <stringValue>Validate</stringValue>
-            </value>
-        </inputAssignments>
-        <object>Purchase_Price__c</object>
-    </recordUpdates>
-    <recordUpdates>
-        <name>Update_Open_End_18M_To_Ask</name>
-        <label>Open end no end date: 18M to To Ask</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <connector>
-            <targetReference>Update_Negotiation_Lost_To_Obsolete</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Status__c</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>Validate</stringValue>
-            </value>
-        </filters>
-        <filters>
-            <field>End_Validity_Date__c</field>
-            <operator>IsNull</operator>
-            <value>
-                <booleanValue>true</booleanValue>
-            </value>
-        </filters>
-        <inputAssignments>
-            <field>Status__c</field>
-            <value>
-                <stringValue>To Ask</stringValue>
-            </value>
-        </inputAssignments>
-        <object>Purchase_Price__c</object>
-    </recordUpdates>
-    <recordUpdates>
+        <description>Passe en Obsolete les prix To Ask marques NEGOTIATION_LOST.</description>
         <name>Update_Negotiation_Lost_To_Obsolete</name>
         <label>Negotiation lost marker to Obsolete</label>
         <locationX>0</locationX>
@@ -172,6 +113,78 @@
         <object>Purchase_Price__c</object>
     </recordUpdates>
     <recordUpdates>
+        <description>Passe en To Ask les Validate sans date de fin arrives a la date de revue 18 mois.</description>
+        <name>Update_Open_End_18M_To_Ask</name>
+        <label>Open end no end date: 18M to To Ask</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Update_Negotiation_Lost_To_Obsolete</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Status__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Validate</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>End_Validity_Date__c</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <filters>
+            <field>PP_No_End_Review_Due__c</field>
+            <operator>LessThanOrEqualTo</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Status__c</field>
+            <value>
+                <stringValue>To Ask</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Purchase_Price__c</object>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Active les Future Price en Validate a la date d&apos;effet.</description>
+        <name>Update_Pending_To_Validate</name>
+        <label>Update Pending To Validate</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Update_Validate_Ended_To_Obsolete</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Status__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Future Price</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Start_Validity_Date__c</field>
+            <operator>LessThanOrEqualTo</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Status__c</field>
+            <value>
+                <stringValue>Validate</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Purchase_Price__c</object>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Finalise l&apos;obsolescence des anciens prix de remplacement et reset ToBeReplaced.</description>
         <name>Update_ToBeReplaced_To_Obsolete</name>
         <label>Update ToBeReplaced To Obsolete</label>
         <locationX>0</locationX>
@@ -208,6 +221,38 @@
         </inputAssignments>
         <object>Purchase_Price__c</object>
     </recordUpdates>
+    <recordUpdates>
+        <description>Archive les prix Validate dont la fin de validite est depassee.</description>
+        <name>Update_Validate_Ended_To_Obsolete</name>
+        <label>Validate ended to Obsolete</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Update_Open_End_18M_To_Ask</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Status__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Validate</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>End_Validity_Date__c</field>
+            <operator>LessThanOrEqualTo</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Status__c</field>
+            <value>
+                <stringValue>Obsolete</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Purchase_Price__c</object>
+    </recordUpdates>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -223,6 +268,3 @@
     </start>
     <status>Active</status>
 </Flow>
-
-
-

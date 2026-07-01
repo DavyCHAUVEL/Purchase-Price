@@ -1,8 +1,20 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <customErrors>
+        <description>Erreur levee si la signature client d&apos;un prix specifique est deja presente.</description>
+        <name>Error_Duplicate_Specific_Price</name>
+        <label>Erreur doublon prix specifique</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <customErrorMessages>
+            <errorMessage>Un prix d&apos;achat specifique existe deja pour la meme empreinte article/fournisseur/purchased threw et le meme compte client principal.</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <customErrors>
+        <description>Erreur levee si un doublon standard non obsolete est detecte sur la meme empreinte.</description>
         <name>Error_Duplicate_Standard_Price</name>
         <label>Erreur doublon prix standard</label>
         <locationX>0</locationX>
@@ -13,6 +25,7 @@
         </customErrorMessages>
     </customErrors>
     <customErrors>
+        <description>Erreur levee quand PP_Revises__c pointe vers un enregistrement introuvable.</description>
         <name>Error_Revises_Bad_Parent_Ref</name>
         <label>Révision : offre cible introuvable</label>
         <locationX>0</locationX>
@@ -23,6 +36,7 @@
         </customErrorMessages>
     </customErrors>
     <customErrors>
+        <description>Erreur levee quand la revision ne cible pas la meme empreinte article/fournisseur/purchased threw.</description>
         <name>Error_Revises_Fingerprint_Mismatch</name>
         <label>Révision : empreinte différente</label>
         <locationX>0</locationX>
@@ -32,17 +46,94 @@
             <isFieldError>false</isFieldError>
         </customErrorMessages>
     </customErrors>
-    <customErrors>
-        <name>Error_Duplicate_Specific_Price</name>
-        <label>Erreur doublon prix specifique</label>
+    <decisions>
+        <description>Distingue un doublon standard d&apos;un doublon potentiel specific via quotations liees.</description>
+        <name>Check_Candidate_Has_Quotation</name>
+        <label>Candidate a des quotations client ?</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <customErrorMessages>
-            <errorMessage>Un prix d&apos;achat specifique existe deja pour la meme empreinte article/fournisseur/purchased threw et le meme compte client principal.</errorMessage>
-            <isFieldError>false</isFieldError>
-        </customErrorMessages>
-    </customErrors>
+        <defaultConnector>
+            <targetReference>Error_Duplicate_Standard_Price</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Pas de quotation — doublon standard</defaultConnectorLabel>
+        <rules>
+            <name>Has_Quotation</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Quotation_For_Candidate.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Quotation_For_Current_Record</targetReference>
+            </connector>
+            <label>Oui — comparer signature client</label>
+        </rules>
+    </decisions>
     <decisions>
+        <description>Autorise le parcours si le candidat est en To Ask ou Future Price (cas metiers autorises).</description>
+        <name>Check_Candidate_Is_To_Ask</name>
+        <label>Autre enregistrement en To Ask/Future ?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Get_Quotation_For_Candidate</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Non — verifier quotations</defaultConnectorLabel>
+        <rules>
+            <name>Is_To_Ask_Or_Future</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Existing_Standard_Candidate.Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>To Ask</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Existing_Standard_Candidate.Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Future Price</stringValue>
+                </rightValue>
+            </conditions>
+            <label>Oui — parcours specifique en cours, ne pas bloquer</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Verifie s&apos;il existe un autre Purchase Price actif portant la meme empreinte dedupe (controle applique aux prix standards).</description>
+        <name>Check_Found_Other_PP</name>
+        <label>Autre PP non obsolete avec meme empreinte ?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>Pas de candidat</defaultConnectorLabel>
+        <rules>
+            <name>Found_Candidate</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Existing_Standard_Candidate.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Customer_Specific__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Check_Candidate_Is_To_Ask</targetReference>
+            </connector>
+            <label>Oui (prix standard)</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Verifie la coherence d&apos;empreinte entre le nouveau record et la cible PP_Revises__c.</description>
         <name>Check_Revises_Fingerprint_Match</name>
         <label>Revises : meme empreinte que la cible ?</label>
         <locationX>0</locationX>
@@ -65,6 +156,7 @@
         </rules>
     </decisions>
     <decisions>
+        <description>Valide l&apos;existence de la cible de revision avant tout autre controle.</description>
         <name>Check_Revises_Parent_Exists</name>
         <label>Revises : cible lue ?</label>
         <locationX>0</locationX>
@@ -90,56 +182,7 @@
         </rules>
     </decisions>
     <decisions>
-        <name>Route_Revises_Or_Dedupe</name>
-        <label>Reprise d&apos;offre (revises) ou doublon ?</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnector>
-            <targetReference>Get_Existing_Standard_Candidate</targetReference>
-        </defaultConnector>
-        <defaultConnectorLabel>Pas de revises — controle doublon</defaultConnectorLabel>
-        <rules>
-            <name>Has_Revises</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>$Record.PP_Revises__c</leftValueReference>
-                <operator>IsNull</operator>
-                <rightValue>
-                    <booleanValue>false</booleanValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Get_Parent_For_Revises</targetReference>
-            </connector>
-            <label>Remise a jour d&apos;offre (cible explicite)</label>
-        </rules>
-    </decisions>
-    <decisions>
-        <name>Check_Candidate_Has_Quotation</name>
-        <label>Candidate a des quotations client ?</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnector>
-            <targetReference>Check_Specific_Customer_Signature</targetReference>
-        </defaultConnector>
-        <defaultConnectorLabel>Pas de quotation — doublon standard</defaultConnectorLabel>
-        <rules>
-            <name>Has_Quotation</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>Get_Quotation_For_Candidate.Id</leftValueReference>
-                <operator>IsNull</operator>
-                <rightValue>
-                    <booleanValue>false</booleanValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Get_Quotation_For_Current_Record</targetReference>
-            </connector>
-            <label>Oui — comparer signature client</label>
-        </rules>
-    </decisions>
-    <decisions>
+        <description>Compare la signature client current vs candidate pour detecter les vrais doublons specific.</description>
         <name>Check_Specific_Customer_Signature</name>
         <label>Prix specifique: signature client</label>
         <locationX>0</locationX>
@@ -169,50 +212,35 @@
         </rules>
     </decisions>
     <decisions>
-        <name>Check_Candidate_Is_To_Ask</name>
-        <label>Autre enregistrement en To Ask ?</label>
+        <description>Routage principal: controle revision explicite ou detection de doublon classique.</description>
+        <name>Route_Revises_Or_Dedupe</name>
+        <label>Reprise d&apos;offre (revises) ou doublon ?</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <targetReference>Get_Quotation_For_Candidate</targetReference>
+            <targetReference>Get_Existing_Standard_Candidate</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>Non — verifier quotations</defaultConnectorLabel>
+        <defaultConnectorLabel>Pas de revises — controle doublon</defaultConnectorLabel>
         <rules>
-            <name>Is_To_Ask</name>
+            <name>Has_Revises</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>Get_Existing_Standard_Candidate.Status__c</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <stringValue>To Ask</stringValue>
-                </rightValue>
-            </conditions>
-            <label>Oui — parcours specifique en cours, ne pas bloquer</label>
-        </rules>
-    </decisions>
-    <decisions>
-        <name>Check_Found_Other_PP</name>
-        <label>Autre PP non obsolete avec meme empreinte ?</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnectorLabel>Pas de candidat</defaultConnectorLabel>
-        <rules>
-            <name>Found_Candidate</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>Get_Existing_Standard_Candidate.Id</leftValueReference>
+                <leftValueReference>$Record.PP_Revises__c</leftValueReference>
                 <operator>IsNull</operator>
                 <rightValue>
                     <booleanValue>false</booleanValue>
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Check_Candidate_Is_To_Ask</targetReference>
+                <targetReference>Get_Parent_For_Revises</targetReference>
             </connector>
-            <label>Oui</label>
+            <label>Remise a jour d&apos;offre (cible explicite)</label>
         </rules>
     </decisions>
+    <description>Objectif: prevenir les doublons actifs sur Purchase Price. Si PP_Revises__c est renseigne, le flow valide que la cible de revision conserve la meme empreinte dedupe (article|supplier|purchased through|MOQ). Sinon, il bloque la creation standard en To Confirm lorsqu&apos;un prix actif equivalent existe deja, avec exceptions To Ask/Future Price.</description>
+    <environments>Default</environments>
     <formulas>
+        <description>Construit l&apos;empreinte dedupe article|supplier|purchased threw|MOQ pour les controles anti-doublons standard.</description>
         <name>fxCurrentDedupeFingerprint</name>
         <dataType>String</dataType>
         <expression>CASESAFEID($Record.Article__c) &amp; &quot;|&quot; &amp;
@@ -228,10 +256,10 @@ IF(
     ),
     &quot;-&quot;,
     CASESAFEID($Record.Article__r.Product__r.Account__c)
-)</expression>
+) &amp; &quot;|&quot; &amp;
+TEXT(BLANKVALUE($Record.Min_MOQ__c, 0)) &amp; &quot;|&quot; &amp;
+TEXT(BLANKVALUE($Record.Max_MOQ__c, 0))</expression>
     </formulas>
-    <description>Si PP_Revises__c est renseigne (remplacement d offre : nouvelle ligne + ancienne a passer en obsolete ailleurs), verifie que l empreinte dedupe de la cible = celle de la nouvelle ligne — sinon erreur. Sinon, bloque la creation &quot;standard&quot; (To Confirm) s il existe deja un autre prix actif pour la meme empreinte (hors obsoletes, regles To Ask/quotation comme avant).</description>
-    <environments>Default</environments>
     <interviewLabel>PP_PurchasePrice_BeforeSave_BlockDuplicateStandard {!$Flow.CurrentDateTime}</interviewLabel>
     <label>PP_PurchasePrice_BeforeSave_BlockDuplicateStandard</label>
     <processMetadataValues>
@@ -248,29 +276,7 @@ IF(
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
-        <name>Get_Parent_For_Revises</name>
-        <label>Get offre ciblee par PP_Revises</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Check_Revises_Parent_Exists</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>$Record.PP_Revises__c</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>Purchase_Price__c</object>
-        <queriedFields>Id</queriedFields>
-        <queriedFields>PP_Dedupe_Fingerprint__c</queriedFields>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
+        <description>Cherche un autre PP non obsolete avec la meme empreinte dedupe.</description>
         <name>Get_Existing_Standard_Candidate</name>
         <label>Get autre Purchase Price (meme empreinte)</label>
         <locationX>0</locationX>
@@ -308,29 +314,31 @@ IF(
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <name>Get_Quotation_For_Current_Record</name>
-        <label>Get quotation liee au record courant</label>
+        <description>Charge le PP cible mentionne dans PP_Revises__c.</description>
+        <name>Get_Parent_For_Revises</name>
+        <label>Get offre ciblee par PP_Revises</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Check_Specific_Customer_Signature</targetReference>
+            <targetReference>Check_Revises_Parent_Exists</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
-            <field>Purchase_Price__c</field>
+            <field>Id</field>
             <operator>EqualTo</operator>
             <value>
-                <elementReference>$Record.Id</elementReference>
+                <elementReference>$Record.PP_Revises__c</elementReference>
             </value>
         </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>Customer_s_Purchase_Quotation__c</object>
+        <object>Purchase_Price__c</object>
         <queriedFields>Id</queriedFields>
-        <queriedFields>Customer__c</queriedFields>
+        <queriedFields>PP_Dedupe_Fingerprint__c</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
+        <description>Recupere la quotation du candidat detecte pour verifier le cas specific.</description>
         <name>Get_Quotation_For_Candidate</name>
         <label>Get quotation liee au candidat</label>
         <locationX>0</locationX>
@@ -345,6 +353,30 @@ IF(
             <operator>EqualTo</operator>
             <value>
                 <elementReference>Get_Existing_Standard_Candidate.Id</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Customer_s_Purchase_Quotation__c</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Customer__c</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Recupere la quotation du record courant pour la comparaison de signature client.</description>
+        <name>Get_Quotation_For_Current_Record</name>
+        <label>Get quotation liee au record courant</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Check_Specific_Customer_Signature</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Purchase_Price__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
             </value>
         </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
@@ -381,6 +413,3 @@ IF(
     </start>
     <status>Active</status>
 </Flow>
-
-
-

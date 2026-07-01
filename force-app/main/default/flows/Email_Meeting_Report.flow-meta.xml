@@ -1,24 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>65.0</apiVersion>
+    <description>Flow Email_Meeting_Report : Add Additional Notes to HTML.</description>
+
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
-    <assignments>
-        <description>Ajoute l'INCI du composant courant a la liste INCI du produit, avec separateur '&amp;' entre chaque valeur</description>
-        <name>Add_Component_INCI_to_List</name>
-        <label>Add Component INCI to List</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>varProductINCI</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>fxCurrentInciConcat</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>Loop_Through_Product_Components</targetReference>
-        </connector>
-    </assignments>
     <assignments>
         <description>Injecte les notes additionnelles (Additional_Notes__c) dans le corps de l&apos;email, entre les phrases de devis/échantillons et le footer. Le texte est wrappé dans un paragraphe HTML stylé</description>
         <name>Add_Additional_Notes_to_HTML</name>
@@ -34,6 +19,23 @@
         </assignmentItems>
         <connector>
             <targetReference>Finalize_HTML</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Ajoute l&apos;INCI du composant courant a la liste INCI du produit, avec separateur &apos;&amp;&apos; entre chaque valeur</description>
+        <name>Add_Component_INCI_to_List</name>
+        <label>Add Component INCI to List</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varProductINCI</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>fxCurrentInciConcat</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Through_Product_Components</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -118,7 +120,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Finalize_HTML</targetReference>
+            <targetReference>Check_Additional_Notes</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -801,7 +803,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <targetReference>Finalize_HTML</targetReference>
+            <targetReference>Check_Additional_Notes</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
         <rules>
@@ -1087,27 +1089,20 @@
         <expression>&quot;&lt;p style=&apos;margin-top:20px; color:#000000;&apos;&gt;&quot; &amp; {!Get_Campaign.Additional_Notes__c} &amp; &quot;&lt;/p&gt;&quot;</expression>
     </formulas>
     <formulas>
-        <description>Construit le fragment a ajouter a la liste INCI du produit courant, avec separateur '&amp;amp;' entre plusieurs INCI</description>
+        <description>Construit le fragment a ajouter a la liste INCI du produit courant, avec separateur &apos;&amp;amp;&apos; entre plusieurs INCI</description>
         <name>fxCurrentInciConcat</name>
         <dataType>String</dataType>
         <expression>IF(
-  ISBLANK({!Loop_Through_Product_Components.Substance_INCI__c}),
+  OR(
+    {!Loop_Through_Product_Components.Impurty__c},
+    ISBLANK({!Loop_Through_Product_Components.Substance_INCI__c})
+  ),
   &quot;&quot;,
   IF(
     ISBLANK({!varProductINCI}),
     {!Loop_Through_Product_Components.Substance_INCI__c},
     &quot; &amp;amp; &quot; &amp; {!Loop_Through_Product_Components.Substance_INCI__c}
   )
-)</expression>
-    </formulas>
-    <formulas>
-        <description>Nom affiche dans la signature email. Fallback sur Owner standard si Owner_Name__r est vide.</description>
-        <name>ownerSignatureName</name>
-        <dataType>String</dataType>
-        <expression>IF(
-    ISBLANK({!Get_Campaign.Owner_Name__r.Name}),
-    {!Get_Owner.Name},
-    {!Get_Campaign.Owner_Name__r.Name}
 )</expression>
     </formulas>
     <formulas>
@@ -1190,7 +1185,7 @@ CASE(
   &quot;Vous trouverez en pièce jointe notre offre de prix pour la matière &lt;strong&gt;&quot; &amp; {!varQuotationProductName} &amp; &quot;&lt;/strong&gt;.&quot;,
   
   &quot;IT&quot;, 
-  &quot;Troverete in allegato la nostra offerta di prezzo per &lt;strong&gt;&quot; &amp; {!varQuotationProductName} &amp; &quot;&lt;/strong&gt;.&quot;,
+  &quot;In allegato, la quotazione per matière première.&quot;,
   
   &quot;Vous trouverez en pièce jointe notre offre de prix pour la matière &lt;strong&gt;&quot; &amp; {!varQuotationProductName} &amp; &quot;&lt;/strong&gt;.&quot;
 ) &amp;
@@ -1207,6 +1202,16 @@ CASE(
   ),
   {!SafeCatalogUrl},
   &quot;https://&quot; &amp; {!SafeCatalogUrl}
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Nom affiche dans la signature email. Fallback sur Owner standard si Owner_Name__r est vide.</description>
+        <name>ownerSignatureName</name>
+        <dataType>String</dataType>
+        <expression>IF(
+    ISBLANK({!Get_Campaign.Owner_Name__r.Name}),
+    {!Get_Owner.Name},
+    {!Get_Campaign.Owner_Name__r.Name}
 )</expression>
     </formulas>
     <formulas>
@@ -1268,21 +1273,6 @@ CASE(
     <interviewLabel>Email Meeting Report {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Email Meeting Report</label>
     <loops>
-        <description>Itère sur les composants du produit courant pour construire la liste INCI affichee dans le titre produit</description>
-        <name>Loop_Through_Product_Components</name>
-        <label>Loop Through Product Components</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <collectionReference>Get_Product_Components</collectionReference>
-        <iterationOrder>Asc</iterationOrder>
-        <nextValueConnector>
-            <targetReference>Add_Component_INCI_to_List</targetReference>
-        </nextValueConnector>
-        <noMoreValuesConnector>
-            <targetReference>Build_Product_HTML_Header</targetReference>
-        </noMoreValuesConnector>
-    </loops>
-    <loops>
         <description>Itère sur chaque formule (Presented_Product_Formula__c) du produit courant pour générer un lien HTML cliquable par formule</description>
         <name>Loop_Through_Formulas</name>
         <label>Loop Through Formulas</label>
@@ -1325,6 +1315,21 @@ CASE(
         </nextValueConnector>
         <noMoreValuesConnector>
             <targetReference>Check_Quotation_Count</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Itère sur les composants du produit courant pour construire la liste INCI affichee dans le titre produit</description>
+        <name>Loop_Through_Product_Components</name>
+        <label>Loop Through Product Components</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Product_Components</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Add_Component_INCI_to_List</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Build_Product_HTML_Header</targetReference>
         </noMoreValuesConnector>
     </loops>
     <processMetadataValues>
@@ -1392,30 +1397,6 @@ CASE(
         </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>Campaign</object>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
-        <description>Récupère le nom du propriétaire standard (Owner) pour garantir la signature même si Owner_Name__c n&apos;est pas renseigné.</description>
-        <name>Get_Owner</name>
-        <label>Get Owner</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Get_Email_Template</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>Get_Campaign.OwnerId</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>User</object>
-        <queriedFields>Id</queriedFields>
-        <queriedFields>Name</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
@@ -1524,6 +1505,30 @@ CASE(
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
+        <description>Récupère le nom du propriétaire standard (Owner) pour garantir la signature même si Owner_Name__c n&apos;est pas renseigné.</description>
+        <name>Get_Owner</name>
+        <label>Get Owner</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Email_Template</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Campaign.OwnerId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>User</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Name</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
         <description>Récupère tous les produits présentés (Rapport_de_produit__c) liés à ce Campaign via le champ RapportRDV__c. C&apos;est la liste sur laquelle on boucle pour construire l&apos;email</description>
         <name>Get_Presented_Products</name>
         <label>Get Presented Products</label>
@@ -1548,7 +1553,7 @@ CASE(
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>Recupere les composants du produit courant pour extraire leurs INCI dans l'email de meeting report, tries par concentration decroissante</description>
+        <description>Recupere les composants non impurete (Impurty__c = false) du produit courant pour extraire l&apos;INCI Substance (Substance_INCI__c), tries par concentration decroissante</description>
         <name>Get_Product_Components</name>
         <label>Get Product Components</label>
         <locationX>0</locationX>
@@ -1566,6 +1571,13 @@ CASE(
             </value>
         </filters>
         <filters>
+            <field>Impurty__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <filters>
             <field>Substance_INCI__c</field>
             <operator>IsNull</operator>
             <value>
@@ -1575,6 +1587,7 @@ CASE(
         <getFirstRecordOnly>false</getFirstRecordOnly>
         <object>Component__c</object>
         <queriedFields>Id</queriedFields>
+        <queriedFields>Impurty__c</queriedFields>
         <queriedFields>Substance_INCI__c</queriedFields>
         <queriedFields>X0_0001_100__c</queriedFields>
         <sortField>X0_0001_100__c</sortField>
@@ -1638,7 +1651,7 @@ CASE(
         </inputAssignments>
         <object>Campaign</object>
     </recordUpdates>
-    <runInMode>SystemModeWithoutSharing</runInMode>
+    <runInMode>SystemModeWithSharing</runInMode>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -1646,7 +1659,7 @@ CASE(
             <targetReference>Get_Campaign</targetReference>
         </connector>
     </start>
-    <status>Draft</status>
+    <status>Active</status>
     <textTemplates>
         <description>Footer de l&apos;email en anglais : annonce envoi échantillons, formule de politesse, nom du propriétaire et signature texte complète IWASE COSFA EUROPE</description>
         <name>emailFooterEN</name>
@@ -1840,13 +1853,6 @@ CASE(
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <name>varProductINCI</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
         <name>recordId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -1887,6 +1893,13 @@ CASE(
         <value>
             <numberValue>0.0</numberValue>
         </value>
+    </variables>
+    <variables>
+        <name>varProductINCI</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
     </variables>
     <variables>
         <name>varQuotationCount</name>

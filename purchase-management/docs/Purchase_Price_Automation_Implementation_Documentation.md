@@ -1,4 +1,4 @@
-﻿# Purchase Price Automation - Documentation complete
+# Purchase Price Automation - Documentation complete
 
 ## 0) Mise a jour d&apos;offre (métier)
 
@@ -33,7 +33,9 @@ Cette documentation decrit l'implementation Salesforce realisee autour de `Purch
 
 ### 2.2 Notification email temps reel (apres approbation)
 
-- Un email est envoye quand le statut passe de `To Confirm` a `Validate`.
+- Un ou plusieurs emails sont envoyes quand le statut passe de `To Confirm` a `Validate`.
+- **Sans** ligne `Customer_s_Purchase_Quotation__c` : **un** email recapitulatif (prix standard).
+- **Avec** au moins une ligne de jonction : **un email par ligne** (prix specifique), meme contenu type (tableau + lien PP), sujet et client mis en avant par envoi.
 - Le mail contient:
   - un lien cliquable vers le record,
   - des sections business (`IDENTIFICATION`, `PRIX`, `VALIDITE`, `SOURCE`),
@@ -47,17 +49,16 @@ Cette documentation decrit l'implementation Salesforce realisee autour de `Purch
   - nouveaux prix,
   - records `To Confirm`.
 
-### 2.4 Wizard de creation (Prix + quotations client) — branche a l UI
+### 2.4 Creation par Record Types (nouvelle baseline)
 
-- **Screen Flow** `PP_PurchasePrice_Screen_CreateWithQuotations` (fichier metadata ci-dessous) : en une session, l utilisateur saisit le `Purchase_Price__c` puis, si **prix specifique client**, un second ecran pour au moins un **Account (Client)** a lier sur `Customer_s_Purchase_Quotation__c`.
-- UX ecrans wizard: les champs `Article`, `Supplier` (optionnel) et `Compte client` sont en **selection par nom** (dropdown dynamiques), plus de saisie d ID manuelle.
-- Comportement :
-  - **Prix standard** : le PP est cree avec `Status = To Confirm` (et `PP_PurchasePrice_AfterSave_AutoSubmitApproval` s enclenche apres l enregistrement).
-  - **Prix specifique** : le PP est cree d abord en `To Ask`, puis enregistrement d une `Customer_s_Purchase_Quotation__c`, puis **update** en `To Confirm` (ce changement de statut declenche a son tour l auto-soumission).
-- Les autres customers pour le meme pricing pourront completer sur la related list **Customer s Purchase Quotation** sur la fiche Purchase Price.
-- Boutons UI:
-  - **Fiche Purchase Price**: Quick Action `Create Purchase Price`.
-  - **Vue liste Purchase Price**: List Button `Create Purchase Price` (WebLink) a cote de `New`, URL `/flow/PP_PurchasePrice_Screen_CreateWithQuotations`.
+- Entree utilisateur via **New standard Salesforce** sur `Purchase_Price__c` (plus de bouton wizard dans le parcours cible).
+- Record types actifs:
+  - `Standard Price` (`Standard_Price`)
+  - `Customer-Specific Price` (`Customer_Specific_Price`)
+- Regles:
+  - `Customer-Specific Price` est force en `To Ask` a la creation.
+  - Passage en `To Confirm` interdit tant qu il n existe pas au moins 1 `Customer_s_Purchase_Quotation__c` lie.
+  - Une fois `Customer-Specific Price` en `To Confirm`, ajout/reassignation d une nouvelle quotation bloque: il faut recreer un PP (revision).
 
 ---
 
@@ -92,8 +93,8 @@ Cette documentation decrit l'implementation Salesforce realisee autour de `Purch
   - **Lien record cliquable**:
     - formule `fxRecordUrl` basee sur `$Api.Partner_Server_URL_650 + '/' + $Record.Id`
   - **Prix standard vs spécifique client (email)**:
-    - Get Records sur `Customer_s_Purchase_Quotation__c` (`Purchase_Price__c = $Record.Id`), boucle pour concatener `Customer_Account_Name__c` + code auto `Name` dans `varQuotationLines`.
-    - Corps HTML : deux lignes — **Type de prix** (`fxEmail_TypePrix` : *Prix standard* ou *Prix spécifique à un ou plusieurs clients*) et **Client(s) concerné(s)** (`fxEmail_ClientsConcernes` : `-` si standard, sinon liste `nom compte [code]`, séparée par `; `).
+    - Get Records sur `Customer_s_Purchase_Quotation__c` (`Purchase_Price__c = $Record.Id`), premiere boucle pour concatener `Customer_Account_Name__c` + code auto `Name` dans `varQuotationLines`.
+    - Decision `Specific_Or_Standard` : si `varQuotationLines` vide (aucune jonction) → **un** email (chemin historique : `fxEmail_TypePrix` / `fxEmail_ClientsConcernes` dans un seul corps). Si au moins une jonction → **deuxieme boucle** sur la meme collection + `Send_Email_Specific_Per_Quotation` : **un email par ligne**, avec `fxBodyTable2_Specific` (un seul client par message) et sujet deduplique par compte (`fxSubjectNew_Specific` / `fxSubjectUpdate_Specific`).
     - Libellés tableau en français (ex. *Produit d'achat*, *Début / fin de validité*, *Client(s) concerné(s)*).
     - **Textes d’intro** : Custom Labels `LB_Purchase_Price_Email_Body_*` (orthographe FR, entités HTML) — email d’**approbation** : *Un prix d’achat a été approuvé (statut : Validé)*, plus le tableau. Sujet approbation : `… - Approuvé - {Name}`.
     - **Note**: le nom compte vient de `Customer_Account_Name__c` (pas de `Customer__r.Name` dans le Get Records).
@@ -114,20 +115,35 @@ Cette documentation decrit l'implementation Salesforce realisee autour de `Purch
 - `force-app/main/default/objects/Purchase_Price__c/fields/PP_No_End_Review_Due__c.field-meta.xml`
   - **Type**: formule (Date) — `ADDMONTHS(BLANKVALUE(Start, DATEVALUE(CreatedDate)), 18)` seulement si pas de `End_Validity_Date__c`.
 
+- `force-app/main/default/objects/Purchase_Price__c/fields/PP_Is_Customer_Specific_Type__c.field-meta.xml`
+  - **Type**: formule (Checkbox) — true si `$RecordType.DeveloperName = Customer_Specific_Price` (pilotage Flow sans RecordTypeId hardcode).
+
 - `force-app/main/default/flows/PP_PurchasePrice_Screen_CreateWithQuotations.flow-meta.xml`
   - **Type**: Screen Flow (`processType: Flow`) — **Active** en org partial apres deploiement.
-  - **Role**: parcours guide creation `Purchase_Price__c` + option `Customer_s_Purchase_Quotation__c` (jonction) pour les prix specifiques ; voir **2.4**.
+  - **Role**: legacy (ancien parcours wizard), hors parcours cible actuel.
   - **UX**: choix dynamiques par nom (`dyn_Article`, `dyn_Supplier_Account`, `dyn_Customer_Account`) pour eviter toute saisie d IDs Salesforce.
 
 - `force-app/main/default/flows/PP_PurchasePrice_BeforeSave_BlockDuplicateStandard.flow-meta.xml`
   - **Type**: Record-Triggered (**RecordBeforeSave**, **Create**)
   - **Role**: empeche un second **prix standard** (cree deja en `To Confirm` — filtre d entree) lorsqu un autre PP non `Obsolete` partage `PP_Dedupe_Fingerprint__c` et que l autre n est pas en `To Ask` et n a pas de quotation client. **Statut metadata** : **Draft** jusqu aux tests (puis activer en prod / partial).
 
+- `force-app/main/default/flows/PP_PurchasePrice_BeforeSave_EnforceTypeDefaults.flow-meta.xml`
+  - **Type**: Record-Triggered (**RecordBeforeSave**, **CreateAndUpdate**)
+  - **Role**: aligne `Customer_Specific__c` avec le record type ; force `Status__c = To Ask` a la creation pour `Customer-Specific Price`.
+
+- `force-app/main/default/flows/PP_CustomerPurchaseQuotation_BeforeSave_BlockOnSpecificToConfirm.flow-meta.xml`
+  - **Type**: Record-Triggered (**RecordBeforeSave**, **CreateAndUpdate**) sur `Customer_s_Purchase_Quotation__c`
+  - **Role**: bloque ajout/reassignation de quotation si le PP lie est `Customer-Specific` et deja en `To Confirm`.
+
 - Champ formule (dedupe)
   - `force-app/main/default/objects/Purchase_Price__c/fields/PP_Dedupe_Fingerprint__c.field-meta.xml` : concat `Article` + `Supplier` + `Article__r.Product__r.Account__c` (Purchased threw).
 
 - Champ lookup (révision d&apos;offre)
   - `force-app/main/default/objects/Purchase_Price__c/fields/PP_Revises__c.field-meta.xml` : à remplir sur le **nouveau** PP lors du parcours &quot;remplacer l&apos;offre&quot; — pointe vers l&apos;ancien PP remplacé (voir **§0**).
+
+- Record Types
+  - `force-app/main/default/objects/Purchase_Price__c/recordTypes/Standard_Price.recordType-meta.xml`
+  - `force-app/main/default/objects/Purchase_Price__c/recordTypes/Customer_Specific_Price.recordType-meta.xml`
 
 - Permission Set (sécurité d&apos;accès)
   - `force-app/main/default/permissionsets/Purchase_Price_Dedupe_Access.permissionset-meta.xml` : lecture sur `PP_Dedupe_Fingerprint__c` + édition sur `PP_Revises__c` sans dépendre du `Admin.profile`.
@@ -151,7 +167,7 @@ Cette documentation decrit l'implementation Salesforce realisee autour de `Purch
   - **Type**: `displayType=button`, `openType=newWindow`
   - **Label**: `Create Purchase Price`
   - **URL**: `/flow/PP_PurchasePrice_Screen_CreateWithQuotations`
-  - **Usage**: bouton visible dans la barre de la vue liste Purchase Price (a cote de `New`).
+  - **Usage**: legacy (retire du parcours liste cible ; creation via New standard + record type).
 
 ## Approval Process
 
@@ -260,6 +276,25 @@ Cette documentation decrit l'implementation Salesforce realisee autour de `Purch
 
 ## 8) Points d'attention maintenance
 
+### Standard vs specifique: alternatives au seul bouton "Create Purchase Price"
+
+Aujourd hui, le type de parcours est surtout **comportemental** (presence de `Customer_s_Purchase_Quotation__c` / statut `To Ask` vs enregistrement "standard" direct `To Confirm`), pas un champ dedie versionne ici. Pour simplifier cote UI sans tout changer:
+
+- **2 Quick Actions (liste + fiche)** (recommande, peu invasif): "Nouveau prix standard" et "Nouveau prix client" appelant le **meme** ecran `PP_PurchasePrice_Screen_CreateWithQuotations` avec un **parametre d entree** (ex. booleen ou picklist) qui pre-remplit le premier ecran / branche le parcours — zero ambiguite pour l utilisateur.
+- **1er ecran du Screen Flow** avec choix "Standard / Client" + stockage en variable (deja le plus simple si tu ne veux pas toucher a la page).
+- **Record Types** `Standard` / `Client` + pages et picklists par type: propre pour reporting et FLS, un peu plus lourd a deployer.
+- **Champ formule** (derive) si la regle est stricte: *specifique* = au moins une quotation liee, sinon *standard* — pas de bouton dedie, mais la regle doit etre 100% alignee metier.
+
+**Regle cible (donnee) : jonction = verite, avec edge cases**
+
+- **Verite metier** : un prix **client / specifique** est porte par la presence d’au moins un enregistrement d’**objet de jonction** lie au `Purchase_Price__c` (ex. lignes *Customer Quotation* vers les comptes clients). Sans ligne de jonction, on est en logique **standard** (ou en cours de construction du parcours specifique).
+- **Edge cases** (ou un picklist / record type explicite peut aider en plus de la jonction) :
+  - PP cree **avant** que les lignes de jonction soient saisies (parent d’abord, enfants ensuite) → periode ou le compte de jonctions est encore a zero alors que l’intention est deja “client”.
+  - Creation en **deux temps** (UI vs API / integration) : enfant(s) crees apres le parent.
+  - Besoin **reporting / listes** simples sans sous-filtre sur la jonction → un indicateur derive (roll-up count, formule, ou champ maintenu par flow) peut dupliquer la verite pour l’affichage.
+
+**Garde-fou deploye (fiable, sans champ compteur)** : flow **Before Save** `PP_PurchasePrice_BeforeSave_GuardClientSpecificToConfirm` (sandbox, deploy `0AfAW00000lgGba0AE`) — si `Status = To Confirm` et `Customer_Specific__c` = true : (1) **1er insert** impossible en To Confirm (message : enregistrer d’abord en To Ask puis ajouter les lignes de jonction puis To Confirm) ; (2) **update** : `Get Records` sur `Customer_s_Purchase_Quotation__c` lie au PP — 0 ligne → **Custom Error** (pas d’approbation / pas d’email “comme un standard”). Un seul booleen `Customer_Specific__c` (l’ancien `Customer_Specific_Price__c` a ete supprime du modele). Pas de roll-up M-D requis (lookup enfant → parent).
+
 - Le lookup destinataire dans `PP_PurchasePrice_AfterSave_SendApprovalNotification` pointe actuellement sur Davy (mode test).
 - Si retour en prod process:
   - remettre Robin (ou mailing list),
@@ -282,24 +317,50 @@ Cette documentation decrit l'implementation Salesforce realisee autour de `Purch
 - Wizard mis a jour pour supprimer la saisie manuelle des IDs (selection par nom sur Article / Supplier / Compte client).
 - Bouton wizard ajoute en vue liste Purchase Price (List Button) + presence sur fiche (Quick Action).
 - Phase 2 doublon **standard** : `PP_Dedupe_Fingerprint__c` + Flow `PP_PurchasePrice_BeforeSave_BlockDuplicateStandard` (activer après test sur sandbox).
-- Destinataire email approval rendu configurable via label `LB_Purchase_Price_Notification_Recipients` (fallback `robin@iwasecosfa.com`).
+- Destinataire email approval rendu configurable via label `LB_Purchase_Price_Notification_Recipients`.
 - Flow update clone/archive enrichi avec comparatif ancien/nouveau et `% variation` dans l ecran de confirmation.
 - Dedupe etendu au cas prix specifique via controle de signature client principale (lookup quotation candidat vs quotation record courant).
 - Branche explicite "negociation perdue" ajoutee dans `PP_PurchasePrice_Scheduled_ManageLifecycle` via marqueur `NEGOTIATION_LOST` dans `Quotation_Comment__c` => bascule `Obsolete`.
 - Renommage API des 7 flows Purchase Price vers format deployable (sans `__c` dans le nom API): prefixe `PP_PurchasePrice_...`.
 - Deploiement sandbox `ma-sandbox` execute avec succes (`Deploy ID: 0AfAW00000lfxKP0AY`) sur flows/quick actions/weblink/labels cibles.
+- Hotfix anti-doublon email: desactivation en sandbox des flows legacy `PurchasePrice_AfterSave_Sync` et `PurchasePrice_Auto_Submit_Approval` via FlowDefinition (`activeVersionNumber=0`), pour garder une seule source de notification.
+- Hotfix update approval: `PP_PurchasePrice_AfterSave_AutoSubmitApproval` ignore desormais les enregistrements issus du bouton update (`PP_Revises__c` renseigne) afin d'eviter la double soumission "record already in approval process".
+- Garde-fou **Before Save** `PP_PurchasePrice_BeforeSave_GuardClientSpecificToConfirm` : impossible de sauver en `To Confirm` avec `Customer_Specific__c` (prix client) sans au moins une ligne `Customer_s_Purchase_Quotation__c` (sur update) ; 1er insert en To Confirm+client bloque (message 2 etapes). Deploy sandbox `0AfAW00000lgGba0AE`.
+- Patch sandbox: champ formule `PP_No_End_Review_Due__c` cree en org (alignement avec la logique "open-end +18 mois") et label `LB_Purchase_Price_Notification_Recipients` remis a `robin@iwasecosfa.com` (Deploy `0AfAW00000lhhwH0AQ`).
+- FLS patch sandbox: `Purchase_Price_Dedupe_Access` etendu avec lecture `Purchase_Price__c.PP_No_End_Review_Due__c` pour rendre le champ queryable dans la session metier (Deploy `0AfAW00000lhfck0AA`).
+- Flow update clone/archive aligne record type sur le parent (`RecordTypeId = Get_Purchase_Price.RecordTypeId`) pour conserver `Customer_Specific_Price` lors d une mise a jour.
+- Flow update clone/archive recopie les `Customer_s_Purchase_Quotation__c` lies vers le nouveau PP (clone des lignes clients) quand le PP source est customer-specific.
+- Flow update clone/archive: routage approval dynamique (standard vs customer-specific), alimentation `Approval_Context__c`, et commentaire de soumission "Mise a jour du prix ...".
+- Correctifs runtime flow update:
+  - ajout de fault connectors sur lookups / creates des branches quotations,
+  - suppression des references de champ non deploye en org sur quotation,
+  - re-alignment sur `Approval_Customer_Name__c` pour le recap clients.
+- Deploiement du champ technique `Customer_s_Purchase_Quotation__c.Approval_Customer_Name__c` en sandbox + verification query SOQL.
+- Permission set `Purchase_Price_Visibility_Admin_Sales` etendu avec lecture `Customer_s_Purchase_Quotation__c.Approval_Customer_Name__c` (evite "No such column" en contexte utilisateur sales/admin).
+- Ecran de confirmation update enrichi:
+  - ancienne / nouvelle Supplier Margin,
+  - message explicite "mise a jour sans changement de Purchase Price" quand la variation prix est nulle.
+- Reclassification des donnees en sandbox:
+  - PP avec quotations -> tentative passage en `Customer_Specific_Price` (182 succes, 4 bloques par validation anti-doublon),
+  - reste en `Standard_Price` (827 succes, 4 memes blocages attendus).
 
 ## Remaining
 
 - Dedupe **prix specifique** complet (set integral de quotations clients, pas seulement client principal) a finaliser si exigence metier stricte.
 - Loop &quot;nouveau vs update&quot; métier (spec longue) — hors périmètre du flow standard ci-dessus.
 - Recette fonctionnelle manuelle complete en sandbox (Cas A-E) a executer cote metier/UI.
+- Nettoyage complet des definitions legacy en double (ecran, scheduled, before-save, weekly report, update status) desactivees en sandbox; seuls les `PP_PurchasePrice_*` + `Purchase_Price_Auto_Name` / `Purchase_Price_Prefix_Name_On_Obsolete` restent actifs cote perimetre Purchase Price (Deploy `0AfAW00000lgHNx0AM`).
+- Traitement manuel des 4 records bloques par la validation anti-doublon lors de la normalisation des record types (arbitrage metier requis avant forçage).
 
 ## Risks / Assumptions
 
 - L'email reflete la **presence de quotations liees** au Purchase Price, pas uniquement la case `Customer Specific Price` si elle pouvait diverger des donnees (a verifier cote declaratif / synchro checkbox).
 - `sf project deploy validate` echoue dans cet org sur couverture globale Apex (70% &lt; 75%) et impacts tests existants ; deploiement effectif realise via `sf project deploy start --test-level NoTestRun` (sandbox uniquement).
 - La branche "negociation perdue" repose sur une convention de saisie (`NEGOTIATION_LOST`) dans `Quotation_Comment__c` tant qu aucun champ dedie n est formalise.
+- Les definitions legacy en double sur le perimetre Purchase Price ont ete desactivees en sandbox (voir changelog). En cas de re-import metadata ancienne branche, verifier qu'aucun FlowDefinition n'est re-active en doublon.
+- L'adresse de notification est actuellement un destinataire individuel (`robin@iwasecosfa.com`) ; a remplacer par une DL si le volume/continuité d'exploitation l'exige.
+- Test technique execute en sandbox: creation temporaire d'un `Purchase_Price__c` en `To Confirm` -> ProcessInstance `Pending` cree (auto-submit OK), puis suppression du record de test.
+- Les corrections flow update dependent de la presence et de la lecture FLS de `Customer_s_Purchase_Quotation__c.Approval_Customer_Name__c` pour les profils metier cibles.
 
 ---
 
@@ -319,7 +380,7 @@ Cette documentation decrit l'implementation Salesforce realisee autour de `Purch
 
 - **Reject approbation**: implementation actuelle `reject -> To Ask`. Le texte spec mentionne une branche de negociation contradictoire (`negociation perdue => Validate`, `gagnee => To Ask`) marquee "a revoir plus tard". Decision actuelle: conserver `To Ask` au rejet.
 - **Doublon update/spec loop**: blocage dedupe **standard** implemente; controle integral "meme combinaison + meme ensemble quotations clients" pour prix specifiques reste partiel.
-- **Destinataire Robin**: en sandbox, destinataire flow email pointe encore sur utilisateur de test; bascule Robin/listing requise pour alignement final production.
+- **Destinataire Robin**: aligne en sandbox via `LB_Purchase_Price_Notification_Recipients = robin@iwasecosfa.com`; arbitrer ensuite une DL equipe si necessaire pour la prod.
 
 ### 10.3 Non couvert a ce stade
 
@@ -327,5 +388,58 @@ Cette documentation decrit l'implementation Salesforce realisee autour de `Purch
 - Regle automatique "passer en `To Ask` 2 semaines avant fin de validite" (non livree telle que formulee dans la spec) — differencier de l open-end: **18 mois sans date de fin** -> `To Ask` (voir `PP_PurchasePrice_Scheduled_ManageLifecycle` + `PP_No_End_Review_Due__c`).
 - Integration/exigences hors Salesforce mentionnees dans la spec (SharePoint/Excel) non traitees dans ce package metadata.
 
+---
+
+## 11) Recette rapide A-E (sandbox ma-sandbox, 2026-04-27)
+
+### Resultats
+
+- **Cas A - Creation To Confirm -> approval request**: **PASS**
+  - Creation record test `Purchase_Price__c` en `To Confirm` -> `Id = a0UAW00000A60612AB`.
+  - `ProcessInstance` cree en `Pending` (`Id = 04gAW000001np7FYAQ`, `TargetObjectId = a0UAW00000A60612AB`).
+  - Nettoyage execute: record test supprime.
+- **Cas B - Approve**: **PASS (indirect)**
+  - Verification sur instances recentes: multiples `ProcessInstance` `Approved` existantes (ex. `04gAW000001nctBYAQ` -> `a0UAW00000A3H502AF`), ce qui confirme la branche approbation active.
+- **Cas C - Reject**: **NOT RUN (bloquant role)**
+  - Rejet manuel non execute dans cette passe CLI (depend d'une action approbateur interactive). A faire en recette metier UI.
+- **Cas D - Weekly report**: **NOT RUN (hors fenetre instantanee)**
+  - Flow hebdo actif, mais pas de declenchement immediat en CLI dans cette passe.
+- **Cas E - Dedupe standard**: **PARTIAL**
+  - Le controle before-save est actif (`PP_PurchasePrice_BeforeSave_BlockDuplicateStandard` v2).
+  - Le scenario fonctionnel complet (blocage create standard sur empreinte identique) reste a valider en UI wizard avec jeu de donnees metier cible.
+
+---
+
+## 12) Utilisation gstack pour le lot Purchase Price
+
+Pour ce perimetre, aucune connexion externe supplementaire n'est requise (pas de Supabase).  
+Les skills gstack sont appeles directement dans Cursor via les commandes prefixees `gstack-*`.
+
+### Commandes recommandees
+
+- `/gstack-review` : revue pre-commit/pre-PR du diff Purchase Price.
+- `/gstack-investigate` : analyse root-cause d'un bug ou d'un comportement inattendu.
+- `/gstack-qa` : test de parcours UI et verification des regressions fonctionnelles.
+- `/gstack-ship` : preparation de livraison (tests + changelog + PR).
+
+### Prompt de base (a reutiliser)
+
+`Contexte Purchase Price. Applique .gbrain/.gstack. Priorite low-code (Flow) avant Apex. Apex uniquement si limitation Flow prouvee. Fournis impacts objets/flows, risques de regression, plan de test concret et criteres de validation.`
+
+### Prompts rapides selon le besoin
+
+- **Build / evolution flow**
+  - `Contexte Purchase Price. Applique .gbrain/.gstack. Je veux <objectif metier>. Donne d'abord une solution declarative complete (Flow: start, decisions, updates, fault paths). Apex interdit sauf limitation Flow prouvee.`
+- **Debug**
+  - `Contexte Purchase Price. Applique .gbrain/.gstack. Investigue ce symptome: <symptome>. Donne cause racine, preuves, impact metadata, correctif minimal, puis plan de non-regression.`
+- **Pre-deploy**
+  - `Contexte Purchase Price. Applique .gbrain/.gstack. Fais une revue pre-deploy: gouvernance limites, securite, impacts inter-objets, plan de rollback, checklist de verification sandbox.`
+
+### Bonnes pratiques d'usage
+
+- Toujours inclure "Purchase Price" dans le prompt pour contraindre le contexte.
+- Demander explicitement "low-code first" pour garder la trajectoire Flow.
+- Exiger une section "Flow Limitation" quand Apex est propose.
+- Fin de tache: mettre a jour la doc de ce dossier (`purchase-management/docs`) si le comportement fonctionnel change.
 
 

@@ -33,7 +33,7 @@
         <language>fr</language>
         <protected>false</protected>
         <shortDescription>Corps email approbation Purchase Price</shortDescription>
-        <value>Bonjour Robin,&lt;br/&gt;&lt;br/&gt;Un prix d&apos;achat a &eacute;t&eacute; approuv&eacute; (statut : Valid&eacute;).&lt;br/&gt;Vous trouverez le d&eacute;tail dans le tableau ci-dessous &amp;mdash; merci de v&eacute;rifier la fiche dans Salesforce si besoin.&lt;br/&gt;&lt;br/&gt;--&lt;br/&gt;Automation Purchase Price</value>
+        <value>Bonjour Robin,&lt;br/&gt;&lt;br/&gt;Un prix d&apos;achat a &eacute;t&eacute; Mis &agrave; jour et valid&eacute;.&lt;br/&gt;Vous trouverez le d&eacute;tail dans le tableau ci-dessous &amp;mdash; merci de v&eacute;rifier la fiche dans Salesforce si besoin.&lt;br/&gt;&lt;br/&gt;--&lt;br/&gt;Automation Purchase Price</value>
     </labels>
     <labels>
         <fullName>LB_Purchase_Price_Weekly_New_Subject</fullName>
@@ -77,5 +77,77 @@
         <protected>false</protected>
         <shortDescription>Destinataires email Purchase Price (Robin ou DL)</shortDescription>
         <value>robin@iwasecosfa.com</value>
+    </labels>
+    <labels>
+        <fullName>LB_EBP_Customer_Registration_Robin_Recipients</fullName>
+        <categories>EBP Customer Registration</categories>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Destinataires email Robin (enregistrement client EBP)</shortDescription>
+        <value>r.quiblier@iwasecosfa.com</value>
+    </labels>
+    <labels>
+        <fullName>LB_EBP_Customer_Registration_Subject_ITC</fullName>
+        <categories>EBP Customer Registration</categories>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Objet email ITC demarrage enregistrement client</shortDescription>
+        <value>[New Customer] Enregistrement client a completer</value>
+    </labels>
+    <labels>
+        <fullName>LB_EBP_Customer_Registration_Subject_Robin</fullName>
+        <categories>EBP Customer Registration</categories>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Objet email Robin Coface/DP</shortDescription>
+        <value>[New Customer] Coface et conditions de paiement a completer</value>
+    </labels>
+    <labels>
+        <fullName>LB_EBP_Customer_Registration_Subject_Robin_ToRegister</fullName>
+        <categories>EBP Customer Registration</categories>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Objet email Robin passage TO REGISTER</shortDescription>
+        <value>[New Customer] Client pret pour saisie EBP</value>
+    </labels>
+    <labels>
+        <fullName>LB_EBP_Customer_Registration_Subject_ADV_Registered</fullName>
+        <categories>EBP Customer Registration</categories>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Objet email ADV client enregistre</shortDescription>
+        <value>[New Customer] Client enregistre dans EBP</value>
+    </labels>
+    <labels>
+        <fullName>LB_EBP_Customer_Registration_Body_ITC</fullName>
+        <categories>EBP Customer Registration</categories>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Corps email ITC demarrage (sans Coface/DP)</shortDescription>
+        <value>Bonjour,&lt;br/&gt;&lt;br/&gt;L&apos;enregistrement EBP du client &lt;b&gt;{0}&lt;/b&gt; (SIRET : {1}) a ete demarre par l&apos;ADV.&lt;br/&gt;&lt;br/&gt;Merci de completer la fiche nouveau client (FNC) et les six contacts operationnels sur le compte Salesforce.&lt;br/&gt;&lt;br/&gt;Les champs Coface et conditions de paiement sont du ressort de Robin.&lt;br/&gt;&lt;br/&gt;--&lt;br/&gt;Automation New Customer EBP</value>
+    </labels>
+    <labels>
+        <fullName>LB_EBP_Customer_Registration_Body_Robin</fullName>
+        <categories>EBP Customer Registration</categories>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Corps email Robin Coface/DP demarrage</shortDescription>
+        <value>Bonjour Robin,&lt;br/&gt;&lt;br/&gt;Enregistrement client demarre pour &lt;b&gt;{0}&lt;/b&gt; (SIRET : {1}).&lt;br/&gt;&lt;br/&gt;Merci de completer la garantie Coface, l&apos;encours maximal et les conditions de paiement sur le compte.&lt;br/&gt;&lt;br/&gt;--&lt;br/&gt;Automation New Customer EBP</value>
+    </labels>
+    <labels>
+        <fullName>LB_EBP_Customer_Registration_Body_Robin_ToRegister</fullName>
+        <categories>EBP Customer Registration</categories>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Corps email Robin TO REGISTER</shortDescription>
+        <value>Bonjour Robin,&lt;br/&gt;&lt;br/&gt;Le client &lt;b&gt;{0}&lt;/b&gt; est au statut &lt;b&gt;TO REGISTER&lt;/b&gt;. Les conditions de paiement sont validees.&lt;br/&gt;&lt;br/&gt;Merci d&apos;enregistrer le client dans EBP puis de cliquer sur &lt;i&gt;Mark Registered in EBP&lt;/i&gt; sur le compte Salesforce.&lt;br/&gt;&lt;br/&gt;--&lt;br/&gt;Automation New Customer EBP</value>
+    </labels>
+    <labels>
+        <fullName>LB_EBP_Customer_Registration_Body_ADV_Registered</fullName>
+        <categories>EBP Customer Registration</categories>
+        <language>fr</language>
+        <protected>false</protected>
+        <shortDescription>Corps email ADV client enregistre</shortDescription>
+        <value>Bonjour,&lt;br/&gt;&lt;br/&gt;Le client &lt;b&gt;{0}&lt;/b&gt; a bien ete enregistre dans EBP (code : {1}).&lt;br/&gt;&lt;br/&gt;Vous pouvez passer votre commande.&lt;br/&gt;&lt;br/&gt;--&lt;br/&gt;Automation New Customer EBP</value>
     </labels></CustomLabels>
 

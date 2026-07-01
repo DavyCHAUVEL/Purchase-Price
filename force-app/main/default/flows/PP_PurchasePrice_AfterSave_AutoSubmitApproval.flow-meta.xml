@@ -1,10 +1,45 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
-        <name>Submit_For_Approval</name>
-        <label>Submit For Approval</label>
-        <locationX>176</locationX>
-        <locationY>275</locationY>
+        <name>Submit_For_Approval_Customer_Specific</name>
+        <label>Submit For Approval Customer Specific</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>submit</actionName>
+        <actionType>submit</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>objectId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>processDefinitionNameOrId</name>
+            <value>
+                <stringValue>Purchase_Price_Validation_Client</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>submitterId</name>
+            <value>
+                <elementReference>$User.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>skipEntryCriteria</name>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </inputParameters>
+        <nameSegment>submit</nameSegment>
+        <offset>0</offset>
+    </actionCalls>
+    <actionCalls>
+        <name>Submit_For_Approval_Standard</name>
+        <label>Submit For Approval Standard</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
         <actionName>submit</actionName>
         <actionType>submit</actionType>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
@@ -37,8 +72,63 @@
     </actionCalls>
     <apiVersion>65.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
-    <description>Soumet automatiquement un Purchase_Price__c a l'Approval Process Purchase_Price_Validation quand le statut est To Confirm sur create OU quand on passe a To Confirm par update (ex. saisie sans statut puis mise a jour). Ne re-soumet pas si seuls d&apos;autres champs changent et que le statut reste To Confirm (formule: nouveau record OU changement de Status__c).</description>
-    <environments>Default</environments>
+    <assignments>
+        <name>Append_Approval_Quotation_Line</name>
+        <label>Append Approval Quotation Line</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varApprovalClientsSummary</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>fxAppendApprovalQuotationSegment</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Approval_Quotations</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Init_Approval_Client_List</name>
+        <label>Init Approval Client List</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>varApprovalClientsSummary</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue></stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Approval_Customer_Quotations</targetReference>
+        </connector>
+    </assignments>
+    <decisions>
+        <name>Route_Approval_Process_By_Type</name>
+        <label>Route Approval Process By Type</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Set_Approval_Context_Standard</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Standard</defaultConnectorLabel>
+        <rules>
+            <name>Customer_Specific_Path</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.PP_Is_Customer_Specific_Type__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Approval_Context_Customer_Specific</targetReference>
+            </connector>
+            <label>Customer Specific</label>
+        </rules>
+    </decisions>
     <decisions>
         <name>Should_Auto_Submit</name>
         <label>Should Auto Submit</label>
@@ -55,12 +145,57 @@
                     <booleanValue>true</booleanValue>
                 </rightValue>
             </conditions>
+            <conditions>
+                <leftValueReference>fxNoPendingApproval</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
             <connector>
-                <targetReference>Submit_For_Approval</targetReference>
+                <targetReference>Init_Approval_Client_List</targetReference>
             </connector>
             <label>Yes Submit</label>
         </rules>
     </decisions>
+    <description>Soumet automatiquement un Purchase_Price__c a l&apos;Approval Process quand le statut passe a To Confirm (create ou update, y compris revisions wizard avec PP_Revises__c). Ne re-soumet pas si le statut reste To Confirm sans changement, ni si une approbation est deja Pending.</description>
+    <environments>Default</environments>
+    <formulas>
+        <name>fxAppendApprovalQuotationSegment</name>
+        <dataType>String</dataType>
+        <expression>IF(
+ISBLANK({!varApprovalClientsSummary}),
+&quot;&quot;,
+&quot;; &quot;
+) &amp; IF(
+ISBLANK({!Loop_Approval_Quotations.Approval_Customer_Name__c}),
+&quot;Client inconnu&quot;,
+{!Loop_Approval_Quotations.Approval_Customer_Name__c}
+)</expression>
+    </formulas>
+    <formulas>
+        <name>fxApprovalContextSpecific</name>
+        <dataType>String</dataType>
+        <expression>IF(
+NOT(ISBLANK($Record.PP_Revises__c)),
+&quot;Price Update | Customer-Specific Price | Clients: &quot; &amp; IF(ISBLANK({!varApprovalClientsSummary}), &quot;(none)&quot;, {!varApprovalClientsSummary}),
+&quot;Customer-Specific Price | Clients: &quot; &amp; IF(ISBLANK({!varApprovalClientsSummary}), &quot;(none)&quot;, {!varApprovalClientsSummary})
+)</expression>
+    </formulas>
+    <formulas>
+        <name>fxApprovalContextStandard</name>
+        <dataType>String</dataType>
+        <expression>IF(
+NOT(ISBLANK($Record.PP_Revises__c)),
+&quot;Price Update | Standard Price&quot;,
+&quot;Standard Price&quot;
+)</expression>
+    </formulas>
+    <formulas>
+        <name>fxNoPendingApproval</name>
+        <dataType>Boolean</dataType>
+        <expression>ISBLANK({!Get_Pending_Approval_Instance.Id})</expression>
+    </formulas>
     <formulas>
         <name>fxShouldAutoSubmit</name>
         <dataType>Boolean</dataType>
@@ -74,6 +209,20 @@ ISCHANGED($Record.Status__c)
     </formulas>
     <interviewLabel>PP_PurchasePrice_AfterSave_AutoSubmitApproval {!$Flow.CurrentDateTime}</interviewLabel>
     <label>PP_PurchasePrice_AfterSave_AutoSubmitApproval</label>
+    <loops>
+        <name>Loop_Approval_Quotations</name>
+        <label>Loop Approval Quotations</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Approval_Customer_Quotations</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Append_Approval_Quotation_Line</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Route_Approval_Process_By_Type</targetReference>
+        </noMoreValuesConnector>
+    </loops>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -87,12 +236,115 @@ ISCHANGED($Record.Status__c)
         </value>
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
-    <runInMode>SystemModeWithoutSharing</runInMode>
-    <start>
-        <locationX>50</locationX>
+    <recordLookups>
+        <name>Get_Approval_Customer_Quotations</name>
+        <label>Get Approval Customer Quotations</label>
+        <locationX>0</locationX>
         <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Loop_Approval_Quotations</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Purchase_Price__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Customer_s_Purchase_Quotation__c</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Name</queriedFields>
+        <queriedFields>Approval_Customer_Name__c</queriedFields>
+        <sortField>Name</sortField>
+        <sortOrder>Asc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <name>Get_Pending_Approval_Instance</name>
+        <label>Get Pending Approval Instance</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Should_Auto_Submit</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>TargetObjectId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Status</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Pending</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>ProcessInstance</object>
+        <queriedFields>Id</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <name>Set_Approval_Context_Customer_Specific</name>
+        <label>Set Approval Context Customer Specific</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Submit_For_Approval_Customer_Specific</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Approval_Context__c</field>
+            <value>
+                <elementReference>fxApprovalContextSpecific</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Purchase_Price__c</object>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Set_Approval_Context_Standard</name>
+        <label>Set Approval Context Standard</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Submit_For_Approval_Standard</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Approval_Context__c</field>
+            <value>
+                <elementReference>fxApprovalContextStandard</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Purchase_Price__c</object>
+    </recordUpdates>
+    <runInMode>SystemModeWithoutSharing</runInMode>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Pending_Approval_Instance</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -107,6 +359,11 @@ ISCHANGED($Record.Status__c)
         <triggerType>RecordAfterSave</triggerType>
     </start>
     <status>Active</status>
+    <variables>
+        <name>varApprovalClientsSummary</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
 </Flow>
-
-

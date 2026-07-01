@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <WebLink xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Create_Purchase_Price_Wizard</fullName>
     <availability>online</availability>
@@ -18,5 +18,3 @@
     <showsStatus>false</showsStatus>
     <url>/flow/PP_PurchasePrice_Screen_CreateWithQuotations</url>
 </WebLink>
-
-
