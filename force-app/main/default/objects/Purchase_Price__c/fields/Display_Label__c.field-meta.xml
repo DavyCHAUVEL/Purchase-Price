@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Display_Label__c</fullName>
+    <externalId>false</externalId>
+    <formula>&quot;Price : &quot; &amp; IF(
+OR(TEXT(CurrencyIsoCode) = &quot;JPY&quot;, TEXT(CurrencyIsoCode) = &quot;KRW&quot;),
+TEXT(ROUND(Purchase_Price__c, 0)),
+TEXT(Purchase_Price__c)
+) &amp; &quot; &quot; &amp; TEXT(CurrencyIsoCode) &amp;
+&quot; | Start Validity Date : &quot; &amp; TEXT(Start_Validity_Date__c) &amp;
+&quot; | End Validity Date : &quot; &amp;
+IF(
+    ISBLANK(End_Validity_Date__c),
+    &quot;∞&quot;,
+    TEXT(End_Validity_Date__c)
+) &amp;
+/* Max MOQ */
+&quot; | Max MOQ : &quot; &amp;
+IF(
+    OR( ISBLANK(Max_MOQ__c) , Max_MOQ__c = 0 ),
+    &quot;∞&quot;,
+    TEXT(Max_MOQ__c)
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Display Label</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

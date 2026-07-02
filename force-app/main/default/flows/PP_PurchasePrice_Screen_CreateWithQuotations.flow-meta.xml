@@ -106,6 +106,20 @@
         <expression>IF({!scrPP_inp_PriceType} = &quot;Specific&quot;, &quot;To Ask&quot;, &quot;To Confirm&quot;)</expression>
     </formulas>
     <formulas>
+        <description>Valeur Purchase Price a persister: CEILING pour JPY/KRW (pas de decimales metier).</description>
+        <name>fx_Purchase_Price_For_Create</name>
+        <dataType>Number</dataType>
+        <expression>IF(
+OR(
+{!scrPP_inp_Currency} = &quot;JPY&quot;,
+{!scrPP_inp_Currency} = &quot;KRW&quot;
+),
+CEILING({!scrPP_inp_Purchase_Price}),
+{!scrPP_inp_Purchase_Price}
+)</expression>
+        <scale>2</scale>
+    </formulas>
+    <formulas>
         <name>fx_Supplier_For_Purchase_Price</name>
         <dataType>String</dataType>
         <expression>IF(OR(ISBLANK({!scrPP_inp_Supplier_Id}), LEN({!scrPP_inp_Supplier_Id}) &lt; 5), &quot;&quot;, {!scrPP_inp_Supplier_Id})</expression>
@@ -187,7 +201,7 @@
         <inputAssignments>
             <field>Purchase_Price__c</field>
             <value>
-                <elementReference>scrPP_inp_Purchase_Price</elementReference>
+                <elementReference>fx_Purchase_Price_For_Create</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>

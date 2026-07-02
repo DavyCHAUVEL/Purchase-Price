@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <description>Arrondit Purchase_Price__c au superieur pour JPY et KRW (pas de decimales metier).</description>
+        <name>Apply_Ceiling_Purchase_Price</name>
+        <label>Apply Ceiling Purchase Price</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Purchase_Price__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>fx_CeilingPurchasePrice</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <description>Objectif: garantir que Purchase_Price__c n a pas de decimales pour les devises JPY et KRW (arrondi CEILING), quel que soit le parcours de saisie (creation, update wizard, saisie manuelle).</description>
+    <environments>Default</environments>
+    <formulas>
+        <description>CEILING du montant Purchase Price pour JPY/KRW.</description>
+        <name>fx_CeilingPurchasePrice</name>
+        <dataType>Number</dataType>
+        <expression>CEILING({!$Record.Purchase_Price__c})</expression>
+        <scale>2</scale>
+    </formulas>
+    <interviewLabel>PP_PurchasePrice_BeforeSave_CeilingJpyKrw {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>PP_PurchasePrice_BeforeSave_CeilingJpyKrw</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Apply_Ceiling_Purchase_Price</targetReference>
+        </connector>
+        <filterLogic>(1 OR 2) AND 3</filterLogic>
+        <filters>
+            <field>CurrencyIsoCode</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>JPY</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>CurrencyIsoCode</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>KRW</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Purchase_Price__c</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <object>Purchase_Price__c</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

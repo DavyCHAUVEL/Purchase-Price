@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Grants Purchase Price record type visibility and read access to technical fields for Admin/Sales users.</description>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Purchase_Price__c.PP_Is_Customer_Specific_Type__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Purchase_Price__c.Approval_Context__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Purchase_Price__c.Status__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Purchase_Price__c.Customer_Specific__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Purchase_Price__c.Purchase_Price__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Purchase_Price__c.Purchase_Price_Formatted__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Customer_s_Purchase_Quotation__c.Approval_Customer_Name__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Purchase Price Visibility Admin Sales</label>
+    <recordTypeVisibilities>
+        <recordType>Purchase_Price__c.Standard_Price</recordType>
+        <visible>true</visible>
+    </recordTypeVisibilities>
+    <recordTypeVisibilities>
+        <recordType>Purchase_Price__c.Customer_Specific_Price</recordType>
+        <visible>true</visible>
+    </recordTypeVisibilities>
+</PermissionSet>

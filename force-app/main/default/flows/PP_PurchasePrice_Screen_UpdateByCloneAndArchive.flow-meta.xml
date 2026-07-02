@@ -403,7 +403,14 @@ NOT(OR(
         <expression>IF(
 {!Formula_ShouldRecalculatePurchasePrice},
 {!Formula_CalculatedPurchasePrice},
+IF(
+OR(
+{!Currency} = &quot;JPY&quot;,
+{!Currency} = &quot;KRW&quot;
+),
+CEILING({!Purchase_Price}),
 {!Purchase_Price}
+)
 )</expression>
         <scale>2</scale>
     </formulas>
